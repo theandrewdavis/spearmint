@@ -1,0 +1,8 @@
+# virtualenv
+bin
+include
+lib
+.Python
+
+# Sublime Text
+spearmint.sublime-workspace
