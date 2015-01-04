@@ -1,0 +1,36 @@
+* {
+    box-sizing: border-box;
+}
+.container {
+    width: 980px;
+    margin: auto;
+    margin-top: 100px;
+    margin-bottom: 100px;
+}
+.transactions {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    border-spacing: 0;
+}
+.transactions tr:nth-child(even) {
+    /*background-color: #f8f8f8;*/
+    background-color: #e8e8e8;
+}
+.transactions td {
+    padding: 10px 6px 6px 6px;
+}
+.transactions .date {
+    width: 80px;
+    text-align: right;
+}
+.transactions .amount {
+    width: 80px;
+    text-align: right;
+}
+.transactions .from {
+    width: 120px;
+}
+.transactions .to {
+    width: 120px;
+}
