@@ -1,3 +1,8 @@
+APScheduler==3.0.1
 bottle==0.12.8
+futures==2.2.0
+pytz==2014.10
 shovel==0.3.0
+six==1.9.0
+tzlocal==1.1.2
 wsgiref==0.1.2
