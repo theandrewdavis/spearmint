@@ -1,3 +1,6 @@
+# python
+*.pyc
+
 # virtualenv
 bin
 include
@@ -6,3 +9,6 @@ lib
 
 # Sublime Text
 spearmint.sublime-workspace
+
+# spearmint
+db.sqlite3

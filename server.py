@@ -1,21 +1,26 @@
-from bottle import route, run, static_file
+import bottle
+import sqlite3
 
 # Transactions as JSON
-@route('/api/transactions')
+@bottle.route('/api/transactions')
 def api_transactions():
-    return {'transactions': [
-        {'date': '1/2/2015', 'amount': '2,038.30', 'from': 'Income:NSA', 'to': 'A:Ally', 'description': 'FINANCE AND ACCO FED SALARY~'},
-        {'date': '1/2/2015', 'amount': '1.00', 'from': 'A:Cash', 'to': 'E:Food', 'description': 'Soda mess'}
-    ]}
+    connection = sqlite3.connect('db.sqlite3')
+    cursor = connection.cursor()
+    cursor.execute('SELECT * FROM transactions')
+    transactions = []
+    for row in cursor.fetchall():
+        transactions.append({'date': row[0], 'amount': row[1], 'to': row[2], 'from': row[3], 'description': row[4]})
+    connection.close()
+    return {'transactions': transactions}
 
 # Home page
-@route('/')
+@bottle.route('/')
 def index():
-    return static_file('index.html', root='static')
+    return bottle.static_file('index.html', root='static')
 
 # Static files
-@route('/<path:path>')
+@bottle.route('/<path:path>')
 def static(path):
-    return static_file(path, root='static')
+    return bottle.static_file(path, root='static')
 
-run(host='localhost', port=8080)
+bottle.run(host='localhost', port=8080)

@@ -3,7 +3,7 @@
         {
             "path": ".",
             "folder_exclude_patterns": ["bin", "include", "lib"],
-            "file_exclude_patterns": [".Python"]
+            "file_exclude_patterns": [".Python", "db.sqlite3"]
         }
     ]
 }
