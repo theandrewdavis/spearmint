@@ -1,5 +1,13 @@
 import shovel
 import sqlite3
+import yaml
+
+# Importing spearmint without adding to sys.path doesn't seem to work in a shovel task
+# TODO: Figure out why
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import spearmint
 
 @shovel.task
 def fixtures():
@@ -15,3 +23,14 @@ def fixtures():
     cursor.executemany('INSERT INTO transactions VALUES (?,?,?,?,?)', fixture_data)
     connection.commit()
     connection.close()
+
+@shovel.task
+def fetch():
+    with open('banks.yaml', 'r') as file:
+        banks = [spearmint.BankInfo(**info) for info in yaml.load(file.read())]
+    transactions = []
+    for bank in banks:
+        for account in spearmint.fetch(bank):
+            transactions.extend(account.transactions)
+    for tx in transactions:
+        print('{:>10} {:>9} {:16} {:16} {}'.format(tx.date, tx.amount, tx.from_account, tx.to_account, tx.description))
