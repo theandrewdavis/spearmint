@@ -13,9 +13,9 @@ class Account(object):
         self.transactions = []
 
 class Transaction(object):
-    @staticmethod
-    def from_tuple(tx_tuple):
-        transaction = Transaction()
+    @classmethod
+    def from_tuple(cls, tx_tuple):
+        transaction = cls()
         transaction.date = tx_tuple[0]
         transaction.amount = tx_tuple[1]
         transaction.from_account = tx_tuple[2]
