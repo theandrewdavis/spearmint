@@ -33,4 +33,4 @@ def fetch():
         for account in spearmint.fetch(bank):
             transactions.extend(account.transactions)
     for tx in transactions:
-        print('{:>10} {:>9} {:16} {:16} {}'.format(tx.date, tx.amount, tx.from_account, tx.to_account, tx.description))
+        print('{:>8} {:>9} {:16} {:16} {}'.format(tx.date.strftime('%x'), tx.amount, tx.from_account, tx.to_account, tx.description))

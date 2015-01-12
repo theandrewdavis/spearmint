@@ -44,9 +44,7 @@ def index():
 def static(path):
     return bottle.static_file(path, root='static')
 
-# scheduler = BackgroundScheduler()
-# scheduler.add_job(merge, 'interval', minutes=10)
-# scheduler.start()
-# bottle.run(host='localhost', port=8080)
-
-merge()
+scheduler = BackgroundScheduler()
+scheduler.add_job(merge, 'interval', minutes=10)
+scheduler.start()
+bottle.run(host='localhost', port=8080)
