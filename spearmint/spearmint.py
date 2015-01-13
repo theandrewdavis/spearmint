@@ -24,7 +24,7 @@ class Account(object):
 class Transaction(object):
     def __init__(self, date=None, amount=None, description=None):
         self.date = self._to_datetime(date)
-        self.amount = amount
+        self.amount = self._to_decimal(amount)
         self.description = description
 
     def _to_datetime(self, date):
@@ -33,3 +33,15 @@ class Transaction(object):
         elif type(date) in [str, unicode]:
             return datetime.datetime.strptime(date, '%x')
         raise 'Invalid date'
+
+    def _to_decimal(self, amount):
+        if type(amount) in [str, unicode]:
+            return decimal.Decimal(amount.replace(',', ''))
+        return decimal.Decimal(amount)
+
+    def to_object(self):
+        return {
+            'date': self.date.strftime('%x'),
+            'amount': '{:,.2f}'.format(self.amount),
+            'description': self.description
+        }

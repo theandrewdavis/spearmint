@@ -15,13 +15,8 @@ def merge():
 # Transactions as JSON
 @bottle.route('/api/transactions')
 def api_transactions():
-    tx_json = []
-    for transaction in spearmint.Database.all_transactions():
-        tx_json.append({
-            'date': transaction.date.strftime('%x'),
-            'amount': str(transaction.amount),
-            'description': transaction.description})
-    return {'transactions': tx_json}
+    transactions = [tx.to_object() for tx in spearmint.Database.all_transactions()]
+    return {'transactions': transactions}
 
 # Home page
 @bottle.route('/')

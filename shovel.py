@@ -14,8 +14,8 @@ def clear():
 @shovel.task
 def fixtures():
     fixture_data = [
-        spearmint.Transaction(date='01/02/15', amount='1,000.00', description='Salary'),
-        spearmint.Transaction(date='01/02/15', amount='1.00', description='Soda')
+        spearmint.Transaction(date='01/02/15', amount='-1,000.00', description='Salary'),
+        spearmint.Transaction(date='01/02/15', amount='-1.00', description='Soda')
     ]
     spearmint.Database.insert_transactions(fixture_data)
 
