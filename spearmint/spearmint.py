@@ -1,11 +1,6 @@
 import decimal
 import yaml
 
-# TODO: OFX classes should be split into own file, but I need to find a way to avoid circular dependencies
-# TODO: Transactions should not store to_account or from_account, that should be in a LedgerEntry or similar
-# TODO: Move to/from tuple code out of Transactions, shouldn't need to know about database
-# TODO: Create README and move all these TODOs to it
-
 class BankLogin(object):
     def __init__(self, bank=None, username=None, password=None):
         self.bank = bank

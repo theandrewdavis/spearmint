@@ -3,7 +3,6 @@ import shovel
 import yaml
 
 # Importing spearmint without adding to sys.path doesn't seem to work in a shovel task
-# TODO: Figure out why
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
