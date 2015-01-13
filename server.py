@@ -1,38 +1,32 @@
 import bottle
 import spearmint
-import sqlite3
 import yaml
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # Add transactions from web to database
 def merge():
-    # Read bank info from yaml file
+    banks = []
     with open('banks.yaml', 'r') as file:
-        banks = [spearmint.BankInfo(**info) for info in yaml.load(file.read())]
-
-    # Fetch transactions from web
+        for bank_config in yaml.load(file.read()):
+            banks.append({'bank': bank_config['bank'], 'username': bank_config['username'], 'password': bank_config['password']})
     transactions = []
     for bank in banks:
-        for account in spearmint.fetch(bank):
-            for transaction in account.transactions:
-                transactions.append(transaction.to_tuple())
-
-    # Write transactions to database
-    connection = sqlite3.connect('db.sqlite3')
-    cursor = connection.cursor()
-    cursor.executemany('INSERT INTO transactions VALUES (?,?,?,?,?)', transactions)
-    connection.commit()
-    connection.close()
+        for account in spearmint.fetch(bank=bank['bank'], username=bank['username'], password=bank['password']):
+            transactions.extend(account.transactions)
+    spearmint.Database.insert_transactions(transactions)
 
 # Transactions as JSON
 @bottle.route('/api/transactions')
 def api_transactions():
-    connection = sqlite3.connect('db.sqlite3')
-    cursor = connection.cursor()
-    cursor.execute('SELECT * FROM transactions')
-    transactions = [spearmint.Transaction.from_tuple(row) for row in cursor.fetchall()]
-    connection.close()
-    return {'transactions': transactions}
+    tx_json = []
+    for transaction in spearmint.Database.all_transactions():
+        tx_json.append({
+            'date': transaction.date,
+            'amount': str(transaction.amount),
+            'to': '',
+            'from': '',
+            'description': transaction.description})
+    return {'transactions': tx_json}
 
 # Home page
 @bottle.route('/')
