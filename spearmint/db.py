@@ -9,8 +9,7 @@ class Database(object):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
         cursor.execute('DROP TABLE IF EXISTS transactions')
-        cursor.execute('CREATE TABLE transactions (`date` text, `amount` text, `to` text, `from` text, `description` text)')
-        cursor.executemany('INSERT INTO transactions VALUES (?,?,?,?,?)', fixture_data)
+        cursor.execute('CREATE TABLE transactions (`date` text, `amount` text, `description` text)')
         connection.commit()
         connection.close()
 
@@ -20,8 +19,8 @@ class Database(object):
         cursor = connection.cursor()
         tx_tuples = []
         for transaction in transactions:
-            tx_tuples.append((transaction.date.strftime('%x'), str(transaction.amount), '', '', transaction.description))
-        cursor.executemany('INSERT INTO transactions VALUES (?,?,?,?,?)', tx_tuples)
+            tx_tuples.append((transaction.date.strftime('%x'), str(transaction.amount), transaction.description))
+        cursor.executemany('INSERT INTO transactions VALUES (?,?,?)', tx_tuples)
         connection.commit()
         connection.close()
 

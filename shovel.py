@@ -14,14 +14,23 @@ def fixtures():
         spearmint.Transaction(date=datetime.datetime(2015, 1, 2), amount='1,000.00', description='Salary'),
         spearmint.Transaction(date=datetime.datetime(2015, 1, 2), amount='1.00', description='Soda')
     ]
+    spearmint.Database.create()
     spearmint.Database.insert_transactions(fixture_data)
 
 @shovel.task
 def fetch():
-    logins = spearmint.BankLogin.load('banks.yaml')
     transactions = []
-    for login in logins:
+    for login in spearmint.BankLogin.load('banks.yaml'):
         for account in spearmint.fetch(login):
             transactions.extend(account.transactions)
     for tx in transactions:
-        print('{:>8} {:>9} {:16} {:16} {}'.format(tx.date.strftime('%x'), tx.amount, tx.from_account, tx.to_account, tx.description))
+        print('{:>8} {:>9} {}'.format(tx.date.strftime('%x'), tx.amount, tx.description))
+
+@shovel.task
+def merge():
+    transactions = []
+    logins = spearmint.BankLogin.load('banks.yaml')
+    for login in logins:
+        for account in spearmint.fetch(login):
+            transactions.extend(account.transactions)
+    spearmint.Database.insert_transactions(transactions)

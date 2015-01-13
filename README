@@ -1,2 +1,1 @@
-TODO: Transactions should not store to_account or from_account, that should be in a LedgerEntry or similar
 TODO: Figure out why sys.path needs to be ammended in shovel.py

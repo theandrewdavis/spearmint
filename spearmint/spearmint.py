@@ -25,5 +25,3 @@ class Transaction(object):
         self.date = date
         self.amount = amount
         self.description = description
-        self.to_account = ''
-        self.from_account = ''

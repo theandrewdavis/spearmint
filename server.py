@@ -20,8 +20,6 @@ def api_transactions():
         tx_json.append({
             'date': transaction.date,
             'amount': str(transaction.amount),
-            'to': '',
-            'from': '',
             'description': transaction.description})
     return {'transactions': tx_json}
 
