@@ -19,13 +19,10 @@ def fixtures():
 
 @shovel.task
 def fetch():
-    banks = []
-    with open('banks.yaml', 'r') as file:
-        for bank_config in yaml.load(file.read()):
-            banks.append({'bank': bank_config['bank'], 'username': bank_config['username'], 'password': bank_config['password']})
+    logins = spearmint.BankLogin.load('banks.yaml')
     transactions = []
-    for bank in banks:
-        for account in spearmint.fetch(bank=bank['bank'], username=bank['username'], password=bank['password']):
+    for login in logins:
+        for account in spearmint.fetch(login):
             transactions.extend(account.transactions)
     for tx in transactions:
         print('{:>8} {:>9} {:16} {:16} {}'.format(tx.date.strftime('%x'), tx.amount, tx.from_account, tx.to_account, tx.description))
