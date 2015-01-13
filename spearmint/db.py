@@ -33,4 +33,5 @@ class Database(object):
         for tx_tuple in cursor.fetchall():
             transactions.append(Transaction(date=tx_tuple[0], amount=tx_tuple[1], description=tx_tuple[2]))
         connection.close()
+        transactions.sort(key=lambda tx: tx.date, reverse=True)
         return transactions
