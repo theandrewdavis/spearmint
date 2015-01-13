@@ -1,4 +1,3 @@
-import datetime
 import shovel
 import yaml
 
@@ -9,12 +8,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import spearmint
 
 @shovel.task
+def clear():
+    spearmint.Database.create()
+
+@shovel.task
 def fixtures():
     fixture_data = [
-        spearmint.Transaction(date=datetime.datetime(2015, 1, 2), amount='1,000.00', description='Salary'),
-        spearmint.Transaction(date=datetime.datetime(2015, 1, 2), amount='1.00', description='Soda')
+        spearmint.Transaction(date='01/02/15', amount='1,000.00', description='Salary'),
+        spearmint.Transaction(date='01/02/15', amount='1.00', description='Soda')
     ]
-    spearmint.Database.create()
     spearmint.Database.insert_transactions(fixture_data)
 
 @shovel.task

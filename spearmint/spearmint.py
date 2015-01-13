@@ -1,3 +1,4 @@
+import datetime
 import decimal
 import yaml
 
@@ -22,6 +23,13 @@ class Account(object):
 
 class Transaction(object):
     def __init__(self, date=None, amount=None, description=None):
-        self.date = date
+        self.date = self._to_datetime(date)
         self.amount = amount
         self.description = description
+
+    def _to_datetime(self, date):
+        if type(date) is datetime.datetime:
+            return date
+        elif type(date) in [str, unicode]:
+            return datetime.datetime.strptime(date, '%x')
+        raise 'Invalid date'

@@ -18,7 +18,7 @@ def api_transactions():
     tx_json = []
     for transaction in spearmint.Database.all_transactions():
         tx_json.append({
-            'date': transaction.date,
+            'date': transaction.date.strftime('%x'),
             'amount': str(transaction.amount),
             'description': transaction.description})
     return {'transactions': tx_json}
