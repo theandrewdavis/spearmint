@@ -17,9 +17,12 @@ class BankLogin(object):
         return logins
 
 class Account(object):
-    def __init__(self):
-        self.balance = decimal.Decimal(0)
-        self.transactions = []
+    def __init__(self, org=None, username=None, number=None, balance=None, transactions=[]):
+        self.org = org
+        self.username = username
+        self.number = number
+        self.balance = balance
+        self.transactions = transactions
 
 class Transaction(object):
     def __init__(self, tid=None, date=None, amount=None, description=None):

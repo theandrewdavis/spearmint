@@ -153,22 +153,28 @@ class OfxFetcher(object):
         for ofxparse_account in document.accounts:
             request = OfxStatementRequest.create(username, password, org, fid, ofxparse_account)
             response = cls._post(url, request)
-            accounts.append(cls._parse_statement(response))
+            number, balance, transactions = cls._parse_statement(response)
+            accounts.append(Account(
+                org=org,
+                username=username,
+                number=number,
+                transactions=transactions,
+                balance=balance))
         return accounts
-
 
     @classmethod
     def _parse_statement(cls, response):
         document = ofxparse.OfxParser.parse(StringIO.StringIO(response))
-        account = Account()
-        account.balance = document.account.statement.balance
+        number = document.account.account_id
+        balance = document.account.statement.balance
+        transactions = []
         for ofxparse_tx in document.account.statement.transactions:
-            account.transactions.append(Transaction(
+            transactions.append(Transaction(
                 tid=ofxparse_tx.id,
                 date=ofxparse_tx.date,
                 amount=ofxparse_tx.amount,
                 description=ofxparse_tx.payee))
-        return account
+        return (number, balance, transactions)
 
     @classmethod
     def _post(cls, url, request):

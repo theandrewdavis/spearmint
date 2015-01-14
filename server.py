@@ -5,12 +5,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 # Add transactions from web to database
 def merge():
-    transactions = []
-    logins = spearmint.BankLogin.load('banks.yaml')
-    for login in logins:
-        for account in spearmint.fetch(login):
-            transactions.extend(account.transactions)
-    spearmint.Database.merge_transactions(transactions)
+    for login in spearmint.BankLogin.load('banks.yaml'):
+        accounts = spearmint.fetch(login)
+        spearmint.Database.merge_accounts(accounts)
 
 # Transactions as JSON
 @bottle.route('/api/transactions')
