@@ -14,10 +14,10 @@ def clear():
 @shovel.task
 def fixtures():
     fixture_data = [
-        spearmint.Transaction(date='01/02/15', amount='-1,000.00', description='Salary'),
-        spearmint.Transaction(date='01/02/15', amount='-1.00', description='Soda')
+        spearmint.Transaction(tid=1, date='01/02/15', amount='-1,000.00', description='Salary'),
+        spearmint.Transaction(tid=2, date='01/02/15', amount='-1.00', description='Soda')
     ]
-    spearmint.Database.insert_transactions(fixture_data)
+    spearmint.Database.merge_transactions(fixture_data)
 
 @shovel.task
 def fetch():
@@ -35,4 +35,4 @@ def merge():
     for login in logins:
         for account in spearmint.fetch(login):
             transactions.extend(account.transactions)
-    spearmint.Database.insert_transactions(transactions)
+    spearmint.Database.merge_transactions(transactions)

@@ -164,6 +164,7 @@ class OfxFetcher(object):
         account.balance = document.account.statement.balance
         for ofxparse_tx in document.account.statement.transactions:
             account.transactions.append(Transaction(
+                tid=ofxparse_tx.id,
                 date=ofxparse_tx.date,
                 amount=ofxparse_tx.amount,
                 description=ofxparse_tx.payee))

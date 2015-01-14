@@ -10,7 +10,7 @@ def merge():
     for login in logins:
         for account in spearmint.fetch(login):
             transactions.extend(account.transactions)
-    spearmint.Database.insert_transactions(transactions)
+    spearmint.Database.merge_transactions(transactions)
 
 # Transactions as JSON
 @bottle.route('/api/transactions')

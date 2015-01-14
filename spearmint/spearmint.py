@@ -22,7 +22,8 @@ class Account(object):
         self.transactions = []
 
 class Transaction(object):
-    def __init__(self, date=None, amount=None, description=None):
+    def __init__(self, tid=None, date=None, amount=None, description=None):
+        self.tid = tid
         self.date = self._to_datetime(date)
         self.amount = self._to_decimal(amount)
         self.description = description

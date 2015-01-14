@@ -9,18 +9,18 @@ class Database(object):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
         cursor.execute('DROP TABLE IF EXISTS transactions')
-        cursor.execute('CREATE TABLE transactions (`date` text, `amount` text, `description` text)')
+        cursor.execute('''CREATE TABLE transactions (`tid` text, `date` text, `amount` text, `description` text, UNIQUE(tid))''')
         connection.commit()
         connection.close()
 
     @classmethod
-    def insert_transactions(cls, transactions):
+    def merge_transactions(cls, transactions):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
         tx_tuples = []
         for transaction in transactions:
-            tx_tuples.append((transaction.date.strftime('%x'), str(transaction.amount), transaction.description))
-        cursor.executemany('INSERT INTO transactions VALUES (?,?,?)', tx_tuples)
+            tx_tuples.append((transaction.tid, transaction.date.strftime('%x'), str(transaction.amount), transaction.description))
+        cursor.executemany('INSERT OR REPLACE INTO transactions VALUES (?,?,?,?)', tx_tuples)
         connection.commit()
         connection.close()
 
@@ -31,7 +31,7 @@ class Database(object):
         cursor.execute('SELECT * FROM transactions')
         transactions = []
         for tx_tuple in cursor.fetchall():
-            transactions.append(Transaction(date=tx_tuple[0], amount=tx_tuple[1], description=tx_tuple[2]))
+            transactions.append(Transaction(tid=tx_tuple[0], date=tx_tuple[1], amount=tx_tuple[2], description=tx_tuple[3]))
         connection.close()
         transactions.sort(key=lambda tx: tx.date, reverse=True)
         return transactions
