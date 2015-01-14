@@ -8,11 +8,22 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import spearmint
 
 @shovel.task
-def clear():
+def db_create():
     spearmint.Database.create()
 
 @shovel.task
-def fixtures():
+def db_empty():
+    spearmint.Database.empty()
+
+@shovel.task
+def db_dump():
+    transactions = spearmint.Database.all_transactions()
+    for tx in transactions:
+        print('{:8} {:>8} {:>9} {}'.format(tx.tid, tx.date.strftime('%x'), tx.amount, tx.description))
+    print('\n{} transactions\n'.format(len(transactions)))
+
+@shovel.task
+def db_add_fixtures():
     fixture_data = [
         spearmint.Transaction(tid=1, date='01/02/15', amount='-1,000.00', description='Salary'),
         spearmint.Transaction(tid=2, date='01/02/15', amount='-1.00', description='Soda')

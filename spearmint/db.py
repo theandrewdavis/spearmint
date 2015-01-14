@@ -4,12 +4,24 @@ from . import Account, Transaction
 
 class Database(object):
     database_file = 'db.sqlite3'
+
+    @classmethod
+    def empty(cls):
+        connection = sqlite3.connect(cls.database_file)
+        cursor = connection.cursor()
+        cursor.execute('DROP TABLE IF EXISTS transactions')
+        connection.commit()
+        connection.close()
+        cls.create()
+
     @classmethod
     def create(cls):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
-        cursor.execute('DROP TABLE IF EXISTS transactions')
-        cursor.execute('''CREATE TABLE transactions (`tid` text, `date` text, `amount` text, `description` text, UNIQUE(tid))''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transactions (
+                `tid` text, `date` text, `amount` text, `description` text,
+                UNIQUE(tid))''')
         connection.commit()
         connection.close()
 
