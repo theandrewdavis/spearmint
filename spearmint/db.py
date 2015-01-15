@@ -21,11 +21,11 @@ class Database(object):
         cursor = connection.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS accounts (
-                `id` integer primary key autoincrement, `org` text, `username` text, `number` text, `balance` text,
+                `aid` integer primary key autoincrement, `org` text, `username` text, `number` text, `balance` text,
                 UNIQUE(org, username, number))''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
-                `tid` text, `date` text, `amount` text, `description` text,
+                `aid` integer, `tid` text, `date` text, `amount` text, `description` text,
                 UNIQUE(tid))''')
         connection.commit()
         connection.close()
@@ -35,12 +35,15 @@ class Database(object):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
         for account in accounts:
-            account_tuple = (account.org, account.username, account.number, str(account.balance))
-            cursor.execute('INSERT OR REPLACE INTO accounts (`org`, `username`, `number`, `balance`) VALUES (?,?,?,?)', account_tuple)
-        for account in accounts:
+            insert_account_query = 'INSERT OR REPLACE INTO accounts (`org`, `username`, `number`, `balance`) VALUES (?,?,?,?)'
+            cursor.execute(insert_account_query, (account.org, account.username, account.number, str(account.balance)))
+            select_account_query = 'SELECT `aid` from accounts WHERE `org`=? AND `username`=? AND `number`=?'
+            cursor.execute(select_account_query, (account.org, account.username, account.number))
+            account_id = cursor.fetchone()[0]
             for transaction in account.transactions:
-                tx_tuple = (transaction.tid, transaction.date.strftime('%x'), str(transaction.amount), transaction.description)
-                cursor.execute('INSERT OR REPLACE INTO transactions VALUES (?,?,?,?)', tx_tuple)
+                insert_tx_query = 'INSERT OR REPLACE INTO transactions (`aid`, `tid`, `date`, `amount`, `description`) VALUES (?,?,?,?,?)'
+                tx_tuple = (account_id, transaction.tid, transaction.date.strftime('%x'), str(transaction.amount), transaction.description)
+                cursor.execute(insert_tx_query, tx_tuple)
         connection.commit()
         connection.close()
 
@@ -51,7 +54,7 @@ class Database(object):
         cursor.execute('SELECT * FROM transactions')
         transactions = []
         for tx_tuple in cursor.fetchall():
-            transactions.append(Transaction(tid=tx_tuple[0], date=tx_tuple[1], amount=tx_tuple[2], description=tx_tuple[3]))
+            transactions.append(Transaction(tid=tx_tuple[1], date=tx_tuple[2], amount=tx_tuple[3], description=tx_tuple[4]))
         connection.close()
         transactions.sort(key=lambda tx: tx.date, reverse=True)
         return transactions
