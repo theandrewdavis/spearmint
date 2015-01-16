@@ -28,16 +28,22 @@ def db_dump():
 
 @shovel.task
 def db_add_fixtures():
-    fixture_data = [
-        spearmint.Account(org='Citigroup', username='myusername', number='0123456789', balance='0.00', transactions=[
-            spearmint.Transaction(tid=1, date='01/02/15', amount='-1,000.00', description='Salary'),
-            spearmint.Transaction(tid=2, date='01/03/15', amount='-1.00', description='Soda')
-        ]),
-        spearmint.Account(org='Citigroup', username='myusername', number='9876543210', balance='0.00', transactions=[
-            spearmint.Transaction(tid=2, date='01/04/15', amount='-2.00', description='Soda')
-        ])
+    statements_fixture = [
+        spearmint.Statement(
+            account=spearmint.Account(org='Citigroup', username='myusername', number='0123456789', balance='123.45'),
+            transactions=[
+                spearmint.Transaction(tid=1, date='01/02/15', amount='-1,000.00', description='Salary'),
+                spearmint.Transaction(tid=2, date='01/03/15', amount='-1.00', description='Soda')
+            ]
+        ),
+        spearmint.Statement(
+            account=spearmint.Account(org='Citigroup', username='myusername', number='9876543210', balance='43.21'),
+            transactions=[
+                spearmint.Transaction(tid=2, date='01/04/15', amount='-2.00', description='Soda')
+            ]
+        )
     ]
-    spearmint.Database.merge_accounts(fixture_data)
+    spearmint.Database.merge_statements(statements_fixture)
 
 @shovel.task
 def fetch():
@@ -51,5 +57,5 @@ def fetch():
 @shovel.task
 def merge():
     for login in spearmint.BankLogin.load('banks.yaml'):
-        accounts = spearmint.fetch(login)
-        spearmint.Database.merge_accounts(accounts)
+        statements = spearmint.fetch(login)
+        spearmint.Database.merge_statements(statements)

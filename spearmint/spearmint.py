@@ -17,35 +17,39 @@ class BankLogin(object):
         return logins
 
 class Account(object):
-    def __init__(self, org=None, username=None, number=None, balance=None, transactions=[]):
+    def __init__(self, org=None, username=None, number=None, balance=None):
         self.org = org
         self.username = username
         self.number = number
         self.balance = balance
-        self.transactions = transactions
 
 class Transaction(object):
     def __init__(self, tid=None, date=None, amount=None, description=None):
         self.tid = tid
-        self.date = self._to_datetime(date)
-        self.amount = self._to_decimal(amount)
+        self.date = self._as_datetime(date)
+        self.amount = self._as_decimal(amount)
         self.description = description
 
-    def _to_datetime(self, date):
+    def _as_datetime(self, date):
         if type(date) is datetime.datetime:
             return date
         elif type(date) in [str, unicode]:
             return datetime.datetime.strptime(date, '%x')
         raise 'Invalid date'
 
-    def _to_decimal(self, amount):
+    def _as_decimal(self, amount):
         if type(amount) in [str, unicode]:
             return decimal.Decimal(amount.replace(',', ''))
         return decimal.Decimal(amount)
 
-    def to_object(self):
+    def as_dict(self):
         return {
             'date': self.date.strftime('%x'),
             'amount': '{:,.2f}'.format(self.amount),
             'description': self.description
         }
+
+class Statement(object):
+    def __init__(self, account=None, transactions=[]):
+        self.account = account
+        self.transactions = transactions

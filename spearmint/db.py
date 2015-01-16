@@ -31,16 +31,17 @@ class Database(object):
         connection.close()
 
     @classmethod
-    def merge_accounts(cls, accounts):
+    def merge_statements(cls, statements):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
-        for account in accounts:
+        for statement in statements:
+            account = statement.account
             insert_account_query = 'INSERT OR REPLACE INTO accounts (`org`, `username`, `number`, `balance`) VALUES (?,?,?,?)'
             cursor.execute(insert_account_query, (account.org, account.username, account.number, str(account.balance)))
             select_account_query = 'SELECT `aid` from accounts WHERE `org`=? AND `username`=? AND `number`=?'
             cursor.execute(select_account_query, (account.org, account.username, account.number))
             account_id = cursor.fetchone()[0]
-            for transaction in account.transactions:
+            for transaction in statement.transactions:
                 insert_tx_query = 'INSERT OR REPLACE INTO transactions (`aid`, `tid`, `date`, `amount`, `description`) VALUES (?,?,?,?,?)'
                 tx_tuple = (account_id, transaction.tid, transaction.date.strftime('%x'), str(transaction.amount), transaction.description)
                 cursor.execute(insert_tx_query, tx_tuple)

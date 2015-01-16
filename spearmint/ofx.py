@@ -5,7 +5,7 @@ import StringIO
 import textwrap
 import uuid
 
-from . import Account, Transaction
+from . import Account, Transaction, Statement
 
 class OfxRequest(object):
     @classmethod
@@ -149,32 +149,29 @@ class OfxFetcher(object):
         request = OfxAccountsRequest.create(username, password, org, fid)
         response = cls._post(url, request)
         document = ofxparse.OfxParser.parse(StringIO.StringIO(response))
-        accounts = []
+        statements = []
         for ofxparse_account in document.accounts:
             request = OfxStatementRequest.create(username, password, org, fid, ofxparse_account)
             response = cls._post(url, request)
-            number, balance, transactions = cls._parse_statement(response)
-            accounts.append(Account(
-                org=org,
-                username=username,
-                number=number,
-                transactions=transactions,
-                balance=balance))
-        return accounts
+            statements.append(cls._parse_statement(response, org, username))
+        return statements
 
     @classmethod
-    def _parse_statement(cls, response):
+    def _parse_statement(cls, response, org, username):
+        statement = Statement()
+        statement.account = Account()
         document = ofxparse.OfxParser.parse(StringIO.StringIO(response))
-        number = document.account.account_id
-        balance = document.account.statement.balance
-        transactions = []
+        statement.account.org = org
+        statement.account.username = username
+        statement.account.number = document.account.account_id
+        statement.account.balance = document.account.statement.balance
         for ofxparse_tx in document.account.statement.transactions:
-            transactions.append(Transaction(
+            statement.transactions.append(Transaction(
                 tid=ofxparse_tx.id,
                 date=ofxparse_tx.date,
                 amount=ofxparse_tx.amount,
                 description=ofxparse_tx.payee))
-        return (number, balance, transactions)
+        return statement
 
     @classmethod
     def _post(cls, url, request):
