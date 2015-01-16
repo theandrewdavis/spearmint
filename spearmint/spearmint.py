@@ -1,8 +1,26 @@
 import datetime
+import dateutil.parser
 import decimal
 import yaml
 
-class BankLogin(object):
+class SpearmintObject(object):
+    def _set_datetime(self, attr, value):
+        if value is None or type(value) is datetime.datetime:
+            setattr(self, attr, value)
+        elif type(value) in [str, unicode]:
+            setattr(self, attr, dateutil.parser.parse(value))
+        else:
+            raise 'Invalid date'
+
+    def _set_decimal(self, attr, value):
+        if value is None:
+            setattr(self, attr, value)
+        elif type(value) in [str, unicode]:
+            setattr(self, attr, decimal.Decimal(value.replace(',', '')))
+        else:
+            setattr(self, attr, decimal.Decimal(value))
+
+class BankLogin(SpearmintObject):
     def __init__(self, bank=None, username=None, password=None):
         self.bank = bank
         self.username = username
@@ -16,31 +34,43 @@ class BankLogin(object):
                 logins.append(cls(bank=login['bank'], username=login['username'], password=login['password']))
         return logins
 
-class Account(object):
+class Account(SpearmintObject):
     def __init__(self, org=None, username=None, number=None, balance=None):
         self.org = org
         self.username = username
         self.number = number
         self.balance = balance
 
-class Transaction(object):
+    @property
+    def balance(self):
+        return self._balance
+
+    @balance.setter
+    def balance(self, value):
+        self._set_decimal('_balance', value)
+
+class Transaction(SpearmintObject):
     def __init__(self, tid=None, date=None, amount=None, description=None):
         self.tid = tid
-        self.date = self._as_datetime(date)
-        self.amount = self._as_decimal(amount)
+        self.date = date
+        self.amount = amount
         self.description = description
 
-    def _as_datetime(self, date):
-        if type(date) is datetime.datetime:
-            return date
-        elif type(date) in [str, unicode]:
-            return datetime.datetime.strptime(date, '%x')
-        raise 'Invalid date'
+    @property
+    def date(self):
+        return self._date
 
-    def _as_decimal(self, amount):
-        if type(amount) in [str, unicode]:
-            return decimal.Decimal(amount.replace(',', ''))
-        return decimal.Decimal(amount)
+    @date.setter
+    def date(self, value):
+        self._set_datetime('_date', value)
+
+    @property
+    def amount(self):
+        return self._amount
+
+    @amount.setter
+    def amount(self, value):
+        self._set_decimal('_amount', value)
 
     def as_dict(self):
         return {
@@ -49,7 +79,7 @@ class Transaction(object):
             'description': self.description
         }
 
-class Statement(object):
+class Statement(SpearmintObject):
     def __init__(self, account=None, transactions=[]):
         self.account = account
         self.transactions = transactions
