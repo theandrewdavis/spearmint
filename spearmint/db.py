@@ -35,18 +35,24 @@ class Database(object):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
         for statement in statements:
-            account = statement.account
-            insert_account_query = 'INSERT OR REPLACE INTO accounts (`org`, `username`, `number`, `balance`) VALUES (?,?,?,?)'
-            cursor.execute(insert_account_query, (account.org, account.username, account.number, str(account.balance)))
-            select_account_query = 'SELECT `aid` from accounts WHERE `org`=? AND `username`=? AND `number`=?'
-            cursor.execute(select_account_query, (account.org, account.username, account.number))
-            account_id = cursor.fetchone()[0]
+            account_id = cls._upsert_account(cursor, statement.account)
             for transaction in statement.transactions:
-                insert_tx_query = 'INSERT OR REPLACE INTO transactions (`aid`, `tid`, `date`, `amount`, `description`) VALUES (?,?,?,?,?)'
-                tx_tuple = (account_id, transaction.tid, transaction.date.strftime('%x'), str(transaction.amount), transaction.description)
-                cursor.execute(insert_tx_query, tx_tuple)
+                cls._upsert_transaction(cursor, transaction, account_id)
         connection.commit()
         connection.close()
+
+    @classmethod
+    def _upsert_account(cls, cursor, account):
+        values = (str(account.balance), account.org, account.username, account.number)
+        cursor.execute('UPDATE OR IGNORE accounts SET `balance`=? WHERE `org`=? AND `username`=? AND `number`=?', values)
+        cursor.execute('INSERT OR IGNORE INTO accounts (`balance`, `org`, `username`, `number`) VALUES (?,?,?,?)', values)
+        cursor.execute('SELECT `aid` from accounts WHERE `org`=? AND `username`=? AND `number`=?', values[1:])
+        return cursor.fetchone()[0]
+
+    @classmethod
+    def _upsert_transaction(cls, cursor, transaction, account_id):
+        values = (account_id, transaction.tid, transaction.date.strftime('%x'), str(transaction.amount), transaction.description)
+        cursor.execute('INSERT OR REPLACE INTO transactions (`aid`, `tid`, `date`, `amount`, `description`) VALUES (?,?,?,?,?)', values)
 
     @classmethod
     def all_transactions(cls):
