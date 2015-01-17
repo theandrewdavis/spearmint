@@ -26,7 +26,7 @@ class Database(object):
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
                 `aid` integer, `tid` text, `date` text, `amount` text, `description` text,
-                UNIQUE(tid))''')
+                UNIQUE(aid, tid))''')
         connection.commit()
         connection.close()
 
