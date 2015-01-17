@@ -12,7 +12,7 @@ def merge():
 # Transactions as JSON
 @bottle.route('/api/transactions')
 def api_transactions():
-    transactions = [tx.to_object() for tx in spearmint.Database.all_transactions()]
+    transactions = [tx.as_dict() for tx in spearmint.Database.all_transactions()]
     return {'transactions': transactions}
 
 # Home page
