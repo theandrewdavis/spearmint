@@ -49,6 +49,14 @@ class Account(SpearmintObject):
     def balance(self, value):
         self._set_decimal('_balance', value)
 
+    def as_dict(self):
+        return {
+            'org': self.org,
+            'username': self.username,
+            'number': self.number,
+            'balance': '{:,.2f}'.format(self.balance)
+        }
+
 class Transaction(SpearmintObject):
     def __init__(self, tid=None, date=None, amount=None, description=None):
         self.tid = tid

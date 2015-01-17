@@ -10,10 +10,11 @@ def merge():
         spearmint.Database.merge_statements(statements)
 
 # Transactions as JSON
-@bottle.route('/api/transactions')
+@bottle.route('/api/summary')
 def api_transactions():
+    accounts = [account.as_dict() for account in spearmint.Database.all_accounts()]
     transactions = [tx.as_dict() for tx in spearmint.Database.all_transactions()]
-    return {'transactions': transactions}
+    return {'accounts': accounts, 'transactions': transactions}
 
 # Home page
 @bottle.route('/')

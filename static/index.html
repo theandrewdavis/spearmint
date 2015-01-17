@@ -11,7 +11,19 @@
     </head>
     <body>
         <div class="container">
-            <table class="transactions">
+            <table class="striped-table accounts">
+                <tbody>
+                    <script type="text/x-template" id="account-template">
+                        <tr>
+                            <td class="org"><%- org %></td>
+                            <td class="username"><%- username %></td>
+                            <td class="number"><%- number %></td>
+                            <td class="balance"><%- balance %></td>
+                        </tr>
+                    </script>
+                </tbody>
+            </table>
+            <table class="striped-table transactions">
                 <tbody>
                     <script type="text/x-template" id="transaction-template">
                         <tr>
@@ -21,7 +33,7 @@
                         </tr>
                     </script>
                 </tbody>
-            </div>
+            </table>
         </div>
     </body>
 </html>
