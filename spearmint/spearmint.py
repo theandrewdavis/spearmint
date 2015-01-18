@@ -87,7 +87,10 @@ class Transaction(SpearmintObject):
             'description': self.description
         }
 
-class Statement(SpearmintObject):
-    def __init__(self, account=None, transactions=[]):
+class Statement(object):
+    def __init__(self, account=None, transactions=None):
         self.account = account
-        self.transactions = transactions
+        if transactions is None:
+            self.transactions = []
+        else:
+            self.transactions = transactions
