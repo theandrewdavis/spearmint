@@ -16,17 +16,6 @@ def db_empty():
     spearmint.Database.empty()
 
 @shovel.task
-def db_dump():
-    transactions = spearmint.Database.all_transactions()
-    accounts = spearmint.Database.all_accounts()
-    for tx in transactions:
-        print('{:8} {:>8} {:>9} {}'.format(tx.tid, tx.date.strftime('%x'), tx.amount, tx.description))
-    print('')
-    for account in accounts:
-        print('{:10} {:10} {:10} {:10}'.format(account.org, account.username, account.number, account.balance))
-    print('\n{} transactions, {} accounts\n'.format(len(transactions), len(accounts)))
-
-@shovel.task
 def db_add_fixtures():
     statements_fixture = [
         spearmint.Statement(
@@ -45,14 +34,30 @@ def db_add_fixtures():
     ]
     spearmint.Database.merge_statements(statements_fixture)
 
+def print_summary(accounts, transactions):
+    for tx in transactions:
+        print('{:8} {:>8} {:>9} {}'.format(tx.tid, tx.date.strftime('%x'), tx.amount, tx.description))
+    print('')
+    for account in accounts:
+        print('{:10} {:20} {:20} {:>9}'.format(account.org, account.username, account.number, account.balance))
+    print('\n{} transactions, {} accounts\n'.format(len(transactions), len(accounts)))
+
 @shovel.task
-def fetch():
+def db_dump():
+    accounts = spearmint.Database.all_accounts()
+    transactions = spearmint.Database.all_transactions()
+    print_summary(accounts, transactions)
+
+@shovel.task
+def fetch(bank=None):
+    accounts = []
     transactions = []
     for login in spearmint.BankLogin.load('banks.yaml'):
-        for account in spearmint.fetch(login):
-            transactions.extend(account.transactions)
-    for tx in transactions:
-        print('{:>8} {:>9} {}'.format(tx.date.strftime('%x'), tx.amount, tx.description))
+        if bank is None or bank == login.bank:
+            for statement in spearmint.fetch(login):
+                accounts.append(statement.account)
+                transactions.extend(statement.transactions)
+    print_summary(accounts, transactions)
 
 @shovel.task
 def merge():
