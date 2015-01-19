@@ -39,12 +39,19 @@ def _fetch_amex(login):
         url='https://online.americanexpress.com/myca/ofxdl/desktop/desktopDownload.do?request_type=nl_ofxdownload')
 
 def _fetch_chase(login):
-    return OfxFetcher.fetch(
+    statements = OfxFetcher.fetch(
         username=login.username,
         password=login.password,
         org='B1',
         fid='10898',
         url='https://ofx.chase.com')
+    unique_statements = []
+    usernames = []
+    for statement in statements:
+        if statement.account.username not in usernames:
+            unique_statements.append(statement)
+            usernames.append(statement.account.username)
+    return unique_statements
 
 def _fetch_schwab(login):
     return OfxFetcher.fetch(
