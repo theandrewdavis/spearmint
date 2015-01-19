@@ -50,13 +50,18 @@ def db_dump():
 
 @shovel.task
 def fetch(bank=None):
+    logins = spearmint.BankLogin.load('banks.yaml')
+    if bank is not None:
+        logins = [login for login in logins if login.bank == bank]
+    if len(logins) == 0:
+        print('No login available for bank {}'.format(bank))
+        return
     accounts = []
     transactions = []
-    for login in spearmint.BankLogin.load('banks.yaml'):
-        if bank is None or bank == login.bank:
-            for statement in spearmint.fetch(login):
-                accounts.append(statement.account)
-                transactions.extend(statement.transactions)
+    for login in logins:
+        for statement in spearmint.fetch(login):
+            accounts.append(statement.account)
+            transactions.extend(statement.transactions)
     print_summary(accounts, transactions)
 
 @shovel.task
