@@ -1,4 +1,5 @@
 import bottle
+import logging
 import spearmint
 import yaml
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -25,6 +26,8 @@ def index():
 @bottle.route('/<path:path>')
 def static(path):
     return bottle.static_file(path, root='static')
+
+logging.basicConfig()
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(merge, 'interval', minutes=10)
