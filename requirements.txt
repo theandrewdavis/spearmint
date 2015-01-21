@@ -3,6 +3,7 @@ PyYAML==3.11
 beautifulsoup4==4.3.2
 bottle==0.12.8
 futures==2.2.0
+lxml==3.4.1
 ofxparse==0.14
 python-dateutil==2.4.0
 pytz==2014.10
