@@ -1,7 +1,8 @@
+import dateutil.parser
 import lxml.html
 import requests
 
-from . import OfxFetcher
+from . import Account, OfxFetcher, Statement, Transaction
 
 def fetch(login):
     methods = {
@@ -120,7 +121,6 @@ def _scrape_capitalone360(login):
         number = account_row.xpath('td[2]/a')[0].text.strip()
         balance = account_row.xpath('td[3]/a')[0].text.strip()
         account_data_list.append({'link': link, 'number': number, 'balance': balance})
-        print('{} {} {}'.format(link, number, balance))
 
     # Gather transactions
     statements = []
@@ -129,23 +129,33 @@ def _scrape_capitalone360(login):
         html = lxml.html.fromstring(response.text)
         rows = html.xpath('//tbody[@id="transactionstable"]/tr')
         transactions = []
-        i = 0
-        while i < len(rows):
-            row = rows[i]
+
+        expand_row_next = False
+        for row in rows:
+            if expand_row_next:
+                expand_row_next = False
+                continue
+
+            # When 'expandRow' is present, the next tr element is used for additional
+            # detail, not for a transaction
+            if 'expandRow' in row.attrib['class']:
+                expand_row_next = True
+
             tds = row.xpath('td')
             date_parts = [span.text for span in tds[0].xpath('.//span') if span.text]
             date = dateutil.parser.parse(' '.join(date_parts))
             description = ' '.join(tds[2].text_content().split() + tds[3].text_content().split())
             withdrawal = tds[4].text_content().strip()
             deposit = tds[5].text_content().strip()
-            amount = withdrawal if len(withdrawal) > len(deposit) else deposit
-            transactions.append(Transaction(date=date, amount=amount, description=description))
 
-            # When 'expandRow' is present, the next tr element is used for additional
-            # detail, not for a transaction
-            i += 1
-            if 'expandRow' in row.attrib['class']:
-                i += 1
+            # Interest rate changes don't have an amount, but they can be ignored
+            if deposit == '' and withdrawal == '':
+                continue
+
+            amount = withdrawal if len(withdrawal) > len(deposit) else deposit
+            tx = Transaction(date=date, amount=amount, description=description)
+            tx.amount = -tx.amount if len(withdrawal) > len(deposit) else tx.amount
+            transactions.append(tx)
 
         account = Account(number=account_data['number'], balance=account_data['balance'])
         statements.append(Statement(account=account, transactions=transactions))
@@ -155,11 +165,6 @@ def _scrape_capitalone360(login):
 
     return statements
 
-def _match_capitalone360_tx(ofx_tx, scrape_tx):
-    if ofx_tx.date != scrape_tx.date or ofx_tx.amount != scrape_tx.amount:
-        return False
-    return ofx_tx.description in scrape_tx.description
-
 def _merge_capitalone360(ofx_statements, scrape_statements):
     for ofx_statement in ofx_statements:
         # Match statements by account number
@@ -167,20 +172,20 @@ def _merge_capitalone360(ofx_statements, scrape_statements):
         scrape_statement = scrape_statements[scrape_numbers.index(ofx_statement.account.number)]
 
         for ofx_tx in ofx_statement.transactions:
-            # Match transactions by date and amount
-            matches = filter(lambda scrape_tx: _match_capitalone360_tx(ofx_tx, scrape_tx), scrape_statement.transactions)
+            matches = []
+            for scrape_tx in scrape_statement.transactions:
+                if ofx_tx.date.date() == scrape_tx.date.date():
+                    if ofx_tx.amount == scrape_tx.amount:
+                        matches.append(scrape_tx)
 
             # Ignore ambiguous transactions
             if len(matches) == 1:
-                print('Added description "{}"'.format(matches[0].description))
                 ofx_tx.description = matches[0].description
-            else:
-                print('Ambiguous: {} matches'.format(len(matches)))
 
 def _fetch_capitalone360(login):
     ofx_statements = OfxFetcher.fetch(
         username=login.username,
-        password=login.password,
+        password=login.access_code,
         org='ING DIRECT',
         fid='031176110',
         url='https://ofx.capitalone360.com/OFX/ofx.html')
