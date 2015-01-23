@@ -67,15 +67,24 @@ def _merge_capitalone360(ofx_statements, scrape_statements):
         scrape_numbers = [statement.account.number for statement in scrape_statements]
         scrape_statement = scrape_statements[scrape_numbers.index(ofx_statement.account.number)]
 
+        # Match transactions by date and amount
         for ofx_tx in ofx_statement.transactions:
             matches = []
             for scrape_tx in scrape_statement.transactions:
-                if ofx_tx.date.date() == scrape_tx.date.date():
-                    if ofx_tx.amount == scrape_tx.amount:
-                        matches.append(scrape_tx)
+                if ofx_tx.amount != scrape_tx.amount:
+                    continue
+                if scrape_tx.date.date() < ofx_tx.date.date() - datetime.timedelta(days=1):
+                    continue
+                if scrape_tx.date.date() > ofx_tx.date.date():
+                    continue
+                matches.append(scrape_tx)
 
-            # Ignore ambiguous transactions
-            if len(matches) == 1:
+            if len(matches) == 0:
+                continue
+
+            # If there's only one match or all the matches have the same description,
+            # use the description from the scraped transaction
+            if all([match.description == matches[0].description for match in matches]):
                 ofx_tx.description = matches[0].description
 
 def _fetch_capitalone360(login):
