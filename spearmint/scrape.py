@@ -1,5 +1,6 @@
 import dateutil.parser
 import lxml.html
+import re
 import requests
 
 from . import Account, Statement, Transaction
@@ -91,20 +92,25 @@ class ScrapeFetcher(object):
                 if 'expandRow' in row.attrib['class']:
                     expand_row_next = True
 
+                tx = Transaction()
+                if 'onclick' in row.attrib:
+                    tx.tid = re.search('historySequenceNumber=(\d+)', row.attrib['onclick']).groups()[0]
                 tds = row.xpath('td')
                 date_parts = [span.text for span in tds[0].xpath('.//span') if span.text]
-                date = dateutil.parser.parse(' '.join(date_parts))
-                description = ' '.join(tds[2].text_content().split() + tds[3].text_content().split())
-                withdrawal = tds[4].text_content().strip()
-                deposit = tds[5].text_content().strip()
+                tx.date = dateutil.parser.parse(' '.join(date_parts))
+                tx.description = ' '.join(tds[2].text_content().split() + tds[3].text_content().split())
 
                 # Interest rate changes don't have an amount, but they can be ignored
+                withdrawal = tds[4].text_content().strip()
+                deposit = tds[5].text_content().strip()
                 if deposit == '' and withdrawal == '':
                     continue
+                if len(withdrawal) > len(deposit):
+                    tx.amount = withdrawal
+                    tx.amount = -tx.amount
+                else:
+                    tx.amount = deposit
 
-                amount = withdrawal if len(withdrawal) > len(deposit) else deposit
-                tx = Transaction(date=date, amount=amount, description=description)
-                tx.amount = -tx.amount if len(withdrawal) > len(deposit) else tx.amount
                 transactions.append(tx)
 
             account = Account(number=account_data['number'], balance=account_data['balance'])

@@ -1,3 +1,5 @@
+import datetime
+
 from . import OfxFetcher, ScrapeFetcher
 
 def fetch(login):
@@ -67,8 +69,17 @@ def _merge_capitalone360(ofx_statements, scrape_statements):
         scrape_numbers = [statement.account.number for statement in scrape_statements]
         scrape_statement = scrape_statements[scrape_numbers.index(ofx_statement.account.number)]
 
-        # Match transactions by date and amount
+        # Match transactions by tid
+        ofx_tx_remaining = ofx_statement.transactions[:]
         for ofx_tx in ofx_statement.transactions:
+            matches = [tx for tx in scrape_statement.transactions if tx.tid == ofx_tx.tid]
+            if len(matches) == 1:
+                ofx_tx.description = matches[0].description
+                ofx_tx_remaining.remove(ofx_tx)
+                scrape_statement.transactions.remove(matches[0])
+
+        # Match remaining transactions by date and amount
+        for ofx_tx in ofx_tx_remaining:
             matches = []
             for scrape_tx in scrape_statement.transactions:
                 if ofx_tx.amount != scrape_tx.amount:
@@ -86,6 +97,10 @@ def _merge_capitalone360(ofx_statements, scrape_statements):
             # use the description from the scraped transaction
             if all([match.description == matches[0].description for match in matches]):
                 ofx_tx.description = matches[0].description
+
+            # If two scraped transactions have no tids, different descriptions, and the same
+            # date and amount, matching fails. This could be improved by comparing the
+            # descriptions of the ofx and scrape transactions.
 
 def _fetch_capitalone360(login):
     ofx_statements = OfxFetcher.fetch(
