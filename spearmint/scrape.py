@@ -1,3 +1,4 @@
+import datetime
 import dateutil.parser
 import lxml.html
 import re
@@ -9,10 +10,11 @@ class ScrapeFetcher(object):
     @classmethod
     def fetch(cls, bank=None, username=None, password=None):
         methods = {
-            'capitalone360': cls._fetch_capitalone360
+            'capitalone360': cls._fetch_capitalone360,
+            'ally': cls._fetch_ally
         }
         if bank not in methods:
-            raise 'Not implemented'
+            raise Exception('Not implemented')
         return methods[bank](username, password)
 
     @classmethod
@@ -118,5 +120,70 @@ class ScrapeFetcher(object):
 
         # Log out
         session.get('https://secure.capitalone360.com/myaccount/banking/logout.vm')
+
+        return statements
+
+    @classmethod
+    def _fetch_ally(cls, username, password):
+        session = requests.Session()
+
+        # Get the XSRF token
+        response = session.post('https://securebanking.ally.com/IDPProxy/userstatusenquiry/olbWeb')
+        token = response.headers['csrfchallengetoken']
+        session.headers.update({'CSRFChallengeToken': token})
+
+        # Log in
+        url = 'https://securebanking.ally.com/IDPProxy/executor/session'
+        headers = {
+            'ApplicationId': 'ALLYUSBOLB',
+            'ApplicationName': 'AOB',
+            'ApplicationVersion': '1.0',
+        }
+        data = {
+            'channelType': 'OLB',
+            'passwordPvtBlock': password,
+            'rememberMeFlag': 'false',
+            'userNamePvtEncrypt': username
+        }
+        response = session.post(url, headers=headers, data=data)
+
+        # Complete log in
+        response = session.get('https://securebanking.ally.com/IDPProxy/executor/session/consents')
+
+        # Request accounts
+        response = session.get('https://securebanking.ally.com/IDPProxy/executor/accounts')
+
+        # Parse accounts xml
+        statements = []
+        account_ids = []
+        response_fragment = re.search('<?xml [^>]*>(.*)', response.text).groups()[0]
+        html = lxml.html.fromstring(response_fragment)
+        for balance_element in html.xpath('//accountsummary/currentbalancepvtencrypt'):
+            account = Account(org='ally', username=username)
+            account.number = balance_element.getparent().xpath('accountnumberpvtencrypt')[0].text
+            account.balance = balance_element.text
+            account_ids.append(balance_element.getparent().xpath('accountid')[0].text)
+            statements.append(Statement(account=account))
+
+        for index, statement in enumerate(statements):
+            # Request transactions
+            url = 'https://securebanking.ally.com/IDPProxy/executor/accounts/{}/transactions'
+            start = datetime.datetime.now() - datetime.timedelta(days=30)
+            params = {'fromDate': start.strftime('%Y-%m-%d')}
+            response = session.get(url.format(account_ids[index]), params=params)
+
+            # Parse transactions xml
+            response_fragment = re.search('<?xml [^>]*>(.*)', response.text).groups()[0]
+            html = lxml.html.fromstring(response_fragment)
+            for tx_element in html.xpath('//transaction'):
+                tx = Transaction()
+                tx.tid = tx_element.xpath('transactionid')[0].text
+                tx.date = tx_element.xpath('transactionpostingdate')[0].text
+                tx.amount = tx_element.xpath('transactionamountpvtencrypt')[0].text
+                tx.description = tx_element.xpath('transactiondescription')[0].text
+                statement.transactions.append(tx)
+
+        # Log out
+        session.delete('https://securebanking.ally.com/IDPProxy/executor/session')
 
         return statements
