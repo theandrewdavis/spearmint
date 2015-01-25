@@ -4,14 +4,15 @@ import lxml.html
 import re
 import requests
 
-from . import Account, Statement, Transaction
+from . import Account, Statement, Transaction, OfxParser
 
 class ScrapeFetcher(object):
     @classmethod
     def fetch(cls, bank=None, username=None, password=None):
         methods = {
             'capitalone360': cls._fetch_capitalone360,
-            'ally': cls._fetch_ally
+            'ally': cls._fetch_ally,
+            'barclay': cls._fetch_barclay
         }
         if bank not in methods:
             raise Exception('Not implemented')
@@ -185,5 +186,76 @@ class ScrapeFetcher(object):
 
         # Log out
         session.delete('https://securebanking.ally.com/IDPProxy/executor/session')
+
+        return statements
+
+    @classmethod
+    def _fetch_barclay(cls, username, password):
+        session = requests.Session()
+
+        # Get XSRF token
+        response = session.get('https://www.barclaycardus.com/servicing/')
+        html = lxml.html.fromstring(response.text)
+        token = html.xpath("//input[@name='__fp']")[0].get('value')
+
+        # Submit username
+        url = 'https://www.barclaycardus.com/servicing/login'
+        data = {
+            '__fp': token,
+            'login': 'Log in',
+            'username': username
+        }
+        response = session.post(url, data=data)
+        html = lxml.html.fromstring(response.text)
+        encrypted_username = html.xpath("//input[@name='username']")[0].get('value')
+
+        # Submit password
+        url = 'https://www.barclaycardus.com/servicing/login'
+        data = {
+            'username': encrypted_username,
+            '__fp': token,
+            'submitPassword': 'Log in',
+            'password': password
+        }
+        response = session.post(url, data=data)
+
+        # Find all account numbers
+        account_numbers = []
+        html = lxml.html.fromstring(response.text)
+        link_elements = lxml.html.fromstring(response.text).xpath('//a')
+        for link_element in link_elements:
+            href = link_element.get('href')
+            if href:
+                matches = re.search(r'^SwitchAccount\.action\?accountId=([\d]+)$', href)
+                if matches and matches.group(1) not in account_numbers:
+                    account_numbers.append(matches.group(1))
+
+        # Calculate start and end date of statement to download
+        now = datetime.datetime.now()
+        start_date = (now + datetime.timedelta(-30)).strftime('%m/%d/%y')
+        end_date = now.strftime('%m/%d/%y')
+
+        statements = []
+        for account_number in account_numbers:
+            # Switch to an account
+            url = 'https://www.barclaycardus.com/servicing/SwitchAccount.action?accountId={}'
+            response = session.get(url.format(account_number))
+
+            # Download OFX statement
+            url = 'https://www.barclaycardus.com/servicing/downloadTransactions'
+            data = {
+                'exportTransactions': 'Download',
+                'format': 'QUICKEN',
+                'fromDate': start_date,
+                'toDate': end_date
+            }
+            response = session.post(url, data=data)
+
+            # Parse OFX statement
+            statement = OfxParser.parse(ofx_string=response.text, org='barclay', username=username)
+            statements.append(statement)
+
+        # Log out
+        session.get('https://www.barclaycardus.com/servicing/logout')
 
         return statements

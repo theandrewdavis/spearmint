@@ -143,24 +143,12 @@ class OfxStatementRequest(OfxRequest):
             """
         return cls._process_template(template, template_vars)
 
-class OfxFetcher(object):
+class OfxParser(object):
     @classmethod
-    def fetch(cls, username='', password='', org='', fid='', url=''):
-        request = OfxAccountsRequest.create(username, password, org, fid)
-        response = cls._post(url, request)
-        document = ofxparse.OfxParser.parse(StringIO.StringIO(response))
-        statements = []
-        for ofxparse_account in document.accounts:
-            request = OfxStatementRequest.create(username, password, org, fid, ofxparse_account)
-            response = cls._post(url, request)
-            statements.append(cls._parse_statement(response, org, username))
-        return statements
-
-    @classmethod
-    def _parse_statement(cls, response, org, username):
+    def parse(cls, ofx_string=None, org=None, username=None):
         statement = Statement()
         statement.account = Account()
-        document = ofxparse.OfxParser.parse(StringIO.StringIO(response))
+        document = ofxparse.OfxParser.parse(StringIO.StringIO(ofx_string))
         statement.account.org = org
         statement.account.username = username
         statement.account.number = document.account.account_id
@@ -172,6 +160,20 @@ class OfxFetcher(object):
                 amount=ofxparse_tx.amount,
                 description=ofxparse_tx.payee))
         return statement
+
+class OfxFetcher(object):
+    @classmethod
+    def fetch(cls, username=None, password=None, org=None, fid=None, url=None):
+        request = OfxAccountsRequest.create(username, password, org, fid)
+        response = cls._post(url, request)
+        document = ofxparse.OfxParser.parse(StringIO.StringIO(response))
+        statements = []
+        for ofxparse_account in document.accounts:
+            request = OfxStatementRequest.create(username, password, org, fid, ofxparse_account)
+            response = cls._post(url, request)
+            statement = OfxParser.parse(ofx_string=response, org=org, username=username)
+            statements.append(statement)
+        return statements
 
     @classmethod
     def _post(cls, url, request):

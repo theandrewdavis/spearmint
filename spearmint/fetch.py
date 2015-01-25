@@ -11,7 +11,8 @@ def fetch(login):
         'citibusiness': _fetch_citibusiness,
         'schwab': _fetch_schwab,
         'capitalone360': _fetch_capitalone360,
-        'ally': _fetch_ally
+        'ally': _fetch_ally,
+        'barclay': _fetch_barclay
     }
     if login.bank not in methods:
         raise Exception('Not implemented')
@@ -120,5 +121,11 @@ def _fetch_capitalone360(login):
 def _fetch_ally(login):
     return ScrapeFetcher.fetch(
         bank='ally',
+        username=login.username,
+        password=login.password)
+
+def _fetch_barclay(login):
+    return ScrapeFetcher.fetch(
+        bank='barclay',
         username=login.username,
         password=login.password)
