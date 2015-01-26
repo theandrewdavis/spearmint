@@ -1,5 +1,6 @@
 import datetime
 import dateutil.parser
+import json
 import lxml.html
 import re
 import requests
@@ -8,18 +9,19 @@ from . import Account, Statement, Transaction, OfxParser
 
 class ScrapeFetcher(object):
     @classmethod
-    def fetch(cls, bank=None, username=None, password=None):
+    def fetch(cls, bank=None, username=None, password=None, questions=None):
         methods = {
             'capitalone360': cls._fetch_capitalone360,
             'ally': cls._fetch_ally,
-            'barclay': cls._fetch_barclay
+            'barclay': cls._fetch_barclay,
+            'usbank': cls._fetch_usbank
         }
         if bank not in methods:
             raise Exception('Not implemented')
-        return methods[bank](username, password)
+        return methods[bank](username, password, questions)
 
     @classmethod
-    def _fetch_capitalone360(cls, username, password):
+    def _fetch_capitalone360(cls, username, password, questions):
         session = requests.Session()
 
         # Submit username
@@ -125,7 +127,7 @@ class ScrapeFetcher(object):
         return statements
 
     @classmethod
-    def _fetch_ally(cls, username, password):
+    def _fetch_ally(cls, username, password, questions):
         session = requests.Session()
 
         # Get the XSRF token
@@ -190,7 +192,7 @@ class ScrapeFetcher(object):
         return statements
 
     @classmethod
-    def _fetch_barclay(cls, username, password):
+    def _fetch_barclay(cls, username, password, questions):
         session = requests.Session()
 
         # Get XSRF token
@@ -257,5 +259,84 @@ class ScrapeFetcher(object):
 
         # Log out
         session.get('https://www.barclaycardus.com/servicing/logout')
+
+        return statements
+
+    @classmethod
+    def _fetch_usbank(cls, username, password, questions):
+        session = requests.Session()
+
+        # Submit username
+        url = 'https://onlinebanking.usbank.com/Auth/Login/Login'
+        data = {
+            'USERID': username
+        }
+        response = session.post(url, data=data)
+
+        # Find security question answer
+        html = lxml.html.fromstring(response.text)
+        question = html.xpath("//input[@name='StepUpShieldQuestion.QuetionText']")[0].get('value')
+        answer = questions[question]
+
+        # Submit security question answer
+        url = 'https://onlinebanking.usbank.com/Auth/Login/StepUpCheck'
+        data = {
+            'StepUpShieldQuestion.Answer': answer,
+            'StepUpShieldQuestion.QuetionText': question
+        }
+        response = session.post(url, data=data)
+
+        # Submit password
+        url = 'https://onlinebanking.usbank.com/access/oblix/apps/webgate/bin/webgate.dll?/Auth/Signon/Signon'
+        data = {
+            'password': password,
+            'userid': username
+        }
+        response = session.post(url, data=data)
+
+        # Find session token
+        token = re.search(r'af\(([^\)]+)\)', response.url).group(1)
+
+        # Get list of accounts
+        url = 'https://onlinebanking.usbank.com/USB/af({})/AccountDashboard/GetDownloadAccounts'.format(token)
+        headers = {
+            'Content-Type': 'application/json; charset=UTF-8'
+        }
+        response = session.post(url, headers=headers)
+
+        statements = []
+        now = datetime.datetime.now()
+        for account_json in json.loads(response.text):
+
+            # Refresh transaction history
+            url = 'https://onlinebanking.usbank.com/USB/af({})/AccountDashboard/RefreshTransactionHistory'
+            headers = {
+                'Content-Type': 'application/json; charset=UTF-8'
+            }
+            data = json.dumps({"AccountIndex": account_json['Index']})
+            response = session.post(url.format(token), headers=headers, data=data)
+
+            # Download OFX statement
+            params = {
+                'token': token,
+                'index': account_json['Index'],
+                'from': (now + datetime.timedelta(days=-30)).strftime('%m/%d/%Y'),
+                'to': now.strftime('%m/%d/%Y')
+            }
+            url = 'https://onlinebanking.usbank.com/USB/af({token})/AccountDashboard/Download.aspx?index={index}&from={from}&to={to}&type=qfx1'
+            response = session.get(url.format(**params))
+
+            # Parse OFX statement, or construct an empty account if there is no statement
+            if len(response.text) > 0:
+                statement = OfxParser.parse(ofx_string=response.text, org='usbank', username=username)
+            else:
+                number = account_json['AccountNumber'][-16:]
+                balance = account_json['CurrentBalance']
+                account = Account(org='usbank', username=username, number=number, balance=balance)
+                statement = Statement(account=account, transactions=[])
+            statements.append(statement)
+
+        # Log out
+        session.get('https://onlinebanking.usbank.com/Auth/LogoutConfirmation')
 
         return statements

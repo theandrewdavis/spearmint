@@ -21,11 +21,12 @@ class SpearmintObject(object):
             setattr(self, attr, decimal.Decimal(value))
 
 class BankLogin(SpearmintObject):
-    def __init__(self, bank=None, username=None, password=None, access_code=None):
+    def __init__(self, bank=None, username=None, password=None, access_code=None, questions=None):
         self.bank = bank
         self.username = username
         self.password = password
         self.access_code = access_code
+        self.questions = questions
 
     @classmethod
     def load(cls, filename):
@@ -35,6 +36,7 @@ class BankLogin(SpearmintObject):
                 login = cls(bank=login_info['bank'], username=login_info['username'])
                 login.password = login_info.get('password', None)
                 login.access_code = login_info.get('access_code', None)
+                login.questions = login_info.get('questions', None)
                 logins.append(login)
         return logins
 
