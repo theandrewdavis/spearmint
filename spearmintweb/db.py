@@ -1,22 +1,12 @@
 import sqlite3
 
-from . import Account, Transaction
+from spearmint import Account, Transaction
 
 class Database(object):
     database_file = 'db.sqlite3'
 
     @classmethod
-    def empty(cls):
-        connection = sqlite3.connect(cls.database_file)
-        cursor = connection.cursor()
-        cursor.execute('DROP TABLE IF EXISTS accounts')
-        cursor.execute('DROP TABLE IF EXISTS transactions')
-        connection.commit()
-        connection.close()
-        cls.create()
-
-    @classmethod
-    def create(cls):
+    def create_tables(cls):
         connection = sqlite3.connect(cls.database_file)
         cursor = connection.cursor()
         cursor.execute('''
@@ -27,6 +17,15 @@ class Database(object):
             CREATE TABLE IF NOT EXISTS transactions (
                 `aid` integer, `tid` text, `date` text, `amount` text, `description` text,
                 UNIQUE(aid, tid))''')
+        connection.commit()
+        connection.close()
+
+    @classmethod
+    def drop_tables(cls):
+        connection = sqlite3.connect(cls.database_file)
+        cursor = connection.cursor()
+        cursor.execute('DROP TABLE IF EXISTS accounts')
+        cursor.execute('DROP TABLE IF EXISTS transactions')
         connection.commit()
         connection.close()
 

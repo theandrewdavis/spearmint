@@ -6,14 +6,16 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import spearmint
+import spearmintweb
 
 @shovel.task
-def db_create():
-    spearmint.Database.create()
+def server():
+    spearmintweb.Server(host='localhost', port=8080).run()
 
 @shovel.task
 def db_empty():
-    spearmint.Database.empty()
+    spearmintweb.Database.drop_tables()
+    spearmintweb.Database.create_tables()
 
 @shovel.task
 def db_add_fixtures():
@@ -32,7 +34,7 @@ def db_add_fixtures():
             ]
         )
     ]
-    spearmint.Database.merge_statements(statements_fixture)
+    spearmintweb.Database.merge_statements(statements_fixture)
 
 def print_summary(accounts, transactions):
     for tx in transactions:
@@ -44,8 +46,8 @@ def print_summary(accounts, transactions):
 
 @shovel.task
 def db_dump():
-    accounts = spearmint.Database.all_accounts()
-    transactions = spearmint.Database.all_transactions()
+    accounts = spearmintweb.Database.all_accounts()
+    transactions = spearmintweb.Database.all_transactions()
     print_summary(accounts, transactions)
 
 @shovel.task
@@ -68,4 +70,4 @@ def fetch(bank=None):
 def merge():
     for login in spearmint.BankLogin.load('banks.yaml'):
         statements = spearmint.fetch(login)
-        spearmint.Database.merge_statements(statements)
+        spearmintweb.Database.merge_statements(statements)
