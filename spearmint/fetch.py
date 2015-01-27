@@ -6,28 +6,33 @@ def fetch(info):
     return Fetcher.fetch(info)
 
 class Fetcher(object):
+    _banks = {
+        'citi':             {'method': cls._fetch_citi,             'args': ['username', 'password'                 ]},
+        'amex':             {'method': cls._fetch_amex,             'args': ['username', 'password'                 ]},
+        'chase':            {'method': cls._fetch_chase,            'args': ['username', 'password'                 ]},
+        'citi':             {'method': cls._fetch_citi,             'args': ['username', 'password'                 ]},
+        'citibusiness':     {'method': cls._fetch_citibusiness,     'args': ['username', 'password'                 ]},
+        'schwab':           {'method': cls._fetch_schwab,           'args': ['username', 'password'                 ]},
+        'capitalone360':    {'method': cls._fetch_capitalone360,    'args': ['username', 'password', 'access_code'  ]},
+        'ally':             {'method': cls._fetch_ally,             'args': ['username', 'password'                 ]},
+        'barclay':          {'method': cls._fetch_barclay,          'args': ['username', 'password'                 ]},
+        'usbank':           {'method': cls._fetch_usbank,           'args': ['username', 'password', 'questions'    ]}
+    }
+
     @classmethod
     def fetch(cls, info):
-        banks = {
-            'citi':             {'method': cls._fetch_citi,             'args': ['username', 'password'                 ]},
-            'amex':             {'method': cls._fetch_amex,             'args': ['username', 'password'                 ]},
-            'chase':            {'method': cls._fetch_chase,            'args': ['username', 'password'                 ]},
-            'citi':             {'method': cls._fetch_citi,             'args': ['username', 'password'                 ]},
-            'citibusiness':     {'method': cls._fetch_citibusiness,     'args': ['username', 'password'                 ]},
-            'schwab':           {'method': cls._fetch_schwab,           'args': ['username', 'password'                 ]},
-            'capitalone360':    {'method': cls._fetch_capitalone360,    'args': ['username', 'password', 'access_code'  ]},
-            'ally':             {'method': cls._fetch_ally,             'args': ['username', 'password'                 ]},
-            'barclay':          {'method': cls._fetch_barclay,          'args': ['username', 'password'                 ]},
-            'usbank':           {'method': cls._fetch_usbank,           'args': ['username', 'password', 'questions'    ]}
-        }
         args = info.copy()
         bank = args.pop('bank')
-        if bank not in banks:
+        if bank not in cls._banks:
             raise Exception('Not implemented')
-        for arg in banks[bank]['args']:
+        for arg in cls._banks[bank]['args']:
             if arg not in args:
                 raise Exception('Missing argument "{}"'.format(arg))
-        return banks[bank]['method'](**args)
+        return cls._banks[bank]['method'](**args)
+
+    @classmethod
+    def required_info(cls, bank):
+        return cls._banks[bank]['args']
 
     @classmethod
     def _fetch_citi(cls, username=None, password=None):
