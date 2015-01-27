@@ -2,51 +2,56 @@ import datetime
 
 from . import OfxFetcher, ScrapeFetcher
 
-def fetch(login):
-    methods = {
-        'citi': _fetch_citi,
-        'amex': _fetch_amex,
-        'chase': _fetch_chase,
-        'citi': _fetch_citi,
-        'citibusiness': _fetch_citibusiness,
-        'schwab': _fetch_schwab,
-        'capitalone360': _fetch_capitalone360,
-        'ally': _fetch_ally,
-        'barclay': _fetch_barclay,
-        'usbank': _fetch_usbank
+def fetch(info):
+    banks = {
+        'citi':             {'method': _fetch_citi,             'args': ['username', 'password'                 ]},
+        'amex':             {'method': _fetch_amex,             'args': ['username', 'password'                 ]},
+        'chase':            {'method': _fetch_chase,            'args': ['username', 'password'                 ]},
+        'citi':             {'method': _fetch_citi,             'args': ['username', 'password'                 ]},
+        'citibusiness':     {'method': _fetch_citibusiness,     'args': ['username', 'password'                 ]},
+        'schwab':           {'method': _fetch_schwab,           'args': ['username', 'password'                 ]},
+        'capitalone360':    {'method': _fetch_capitalone360,    'args': ['username', 'password', 'access_code'  ]},
+        'ally':             {'method': _fetch_ally,             'args': ['username', 'password'                 ]},
+        'barclay':          {'method': _fetch_barclay,          'args': ['username', 'password'                 ]},
+        'usbank':           {'method': _fetch_usbank,           'args': ['username', 'password', 'questions'    ]}
     }
-    if login.bank not in methods:
+    args = info.copy()
+    bank = args.pop('bank')
+    if bank not in banks:
         raise Exception('Not implemented')
-    return methods[login.bank](login)
+    for arg in banks[bank]['args']:
+        if arg not in args:
+            raise Exception('Missing argument "{}"'.format(arg))
+    return banks[bank]['method'](**args)
 
-def _fetch_citi(login):
+def _fetch_citi(username=None, password=None):
     return OfxFetcher.fetch(
-        username=login.username,
-        password=login.password,
+        username=username,
+        password=password,
         org='Citigroup',
         fid='24909',
         url='https://www.accountonline.com/cards/svc/CitiOfxManager.do')
 
-def _fetch_citibusiness(login):
+def _fetch_citibusiness(username=None, password=None):
     return OfxFetcher.fetch(
-        username=login.username,
-        password=login.password,
+        username=username,
+        password=password,
         org='Citigroup',
         fid='26389',
         url='https://www.accountonline.com/cards/svc/CitiOfxManager.do')
 
-def _fetch_amex(login):
+def _fetch_amex(username=None, password=None):
     return OfxFetcher.fetch(
-        username=login.username,
-        password=login.password,
+        username=username,
+        password=password,
         org='AMEX',
         fid='3101',
         url='https://online.americanexpress.com/myca/ofxdl/desktop/desktopDownload.do?request_type=nl_ofxdownload')
 
-def _fetch_chase(login):
+def _fetch_chase(username=None, password=None):
     statements = OfxFetcher.fetch(
-        username=login.username,
-        password=login.password,
+        username=username,
+        password=password,
         org='B1',
         fid='10898',
         url='https://ofx.chase.com')
@@ -58,10 +63,10 @@ def _fetch_chase(login):
             usernames.append(statement.account.username)
     return unique_statements
 
-def _fetch_schwab(login):
+def _fetch_schwab(username=None, password=None):
     return OfxFetcher.fetch(
-        username=login.username,
-        password=login.password,
+        username=username,
+        password=password,
         org='101',
         fid='ISC',
         url='https://ofx.schwab.com/bankcgi_dev/ofx_server')
@@ -105,35 +110,35 @@ def _merge_capitalone360(ofx_statements, scrape_statements):
             # date and amount, matching fails. This could be improved by comparing the
             # descriptions of the ofx and scrape transactions.
 
-def _fetch_capitalone360(login):
+def _fetch_capitalone360(username=None, password=None, access_code=None):
     ofx_statements = OfxFetcher.fetch(
-        username=login.username,
-        password=login.access_code,
+        username=username,
+        password=access_code,
         org='ING DIRECT',
         fid='031176110',
         url='https://ofx.capitalone360.com/OFX/ofx.html')
     scrape_statements = ScrapeFetcher.fetch(
-        bank=login.bank,
-        username=login.username,
-        password=login.password)
+        bank='capitalone360',
+        username=username,
+        password=password)
     _merge_capitalone360(ofx_statements, scrape_statements)
     return ofx_statements
 
-def _fetch_ally(login):
+def _fetch_ally(username=None, password=None):
     return ScrapeFetcher.fetch(
         bank='ally',
-        username=login.username,
-        password=login.password)
+        username=username,
+        password=password)
 
-def _fetch_barclay(login):
+def _fetch_barclay(username=None, password=None):
     return ScrapeFetcher.fetch(
         bank='barclay',
-        username=login.username,
-        password=login.password)
+        username=username,
+        password=password)
 
-def _fetch_usbank(login):
+def _fetch_usbank(username=None, password=None, questions=None):
     return ScrapeFetcher.fetch(
         bank='usbank',
-        username=login.username,
-        password=login.password,
-        questions=login.questions)
+        username=username,
+        password=password,
+        questions=questions)

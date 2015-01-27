@@ -1,7 +1,6 @@
 import datetime
 import dateutil.parser
 import decimal
-import yaml
 
 class SpearmintObject(object):
     def _set_datetime(self, attr, value):
@@ -19,26 +18,6 @@ class SpearmintObject(object):
             setattr(self, attr, decimal.Decimal(value.replace(',', '')))
         else:
             setattr(self, attr, decimal.Decimal(value))
-
-class BankLogin(SpearmintObject):
-    def __init__(self, bank=None, username=None, password=None, access_code=None, questions=None):
-        self.bank = bank
-        self.username = username
-        self.password = password
-        self.access_code = access_code
-        self.questions = questions
-
-    @classmethod
-    def load(cls, filename):
-        logins = []
-        with open(filename, 'r') as file:
-            for login_info in yaml.load(file.read()):
-                login = cls(bank=login_info['bank'], username=login_info['username'])
-                login.password = login_info.get('password', None)
-                login.access_code = login_info.get('access_code', None)
-                login.questions = login_info.get('questions', None)
-                logins.append(login)
-        return logins
 
 class Account(SpearmintObject):
     def __init__(self, org=None, username=None, number=None, balance=None):

@@ -52,22 +52,22 @@ def db_dump():
 
 @shovel.task
 def fetch(bank=None):
-    logins = spearmint.BankLogin.load('banks.yaml')
+    logins = spearmintweb.Login.load('banks.yaml')
     if bank is not None:
-        logins = [login for login in logins if login.bank == bank]
+        logins = [login for login in logins if login.info['bank'] == bank]
     if len(logins) == 0:
         print('No login available for bank {}'.format(bank))
         return
     accounts = []
     transactions = []
     for login in logins:
-        for statement in spearmint.fetch(login):
+        for statement in spearmint.fetch(login.info):
             accounts.append(statement.account)
             transactions.extend(statement.transactions)
     print_summary(accounts, transactions)
 
 @shovel.task
 def merge():
-    for login in spearmint.BankLogin.load('banks.yaml'):
-        statements = spearmint.fetch(login)
+    for login in spearmintweb.Login.load('banks.yaml'):
+        statements = spearmint.fetch(login.info)
         spearmintweb.Database.merge_statements(statements)

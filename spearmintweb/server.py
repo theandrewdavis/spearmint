@@ -4,7 +4,7 @@ import spearmint
 import yaml
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from . import Database
+from . import Database, Login
 
 class Server(object):
     def __init__(self, host, port):
@@ -36,8 +36,8 @@ class Server(object):
 class ScheduledUpdater(object):
     @classmethod
     def merge(cls):
-        for login in spearmint.BankLogin.load('banks.yaml'):
-            statements = spearmint.fetch(login)
+        for login in Login.load('banks.yaml'):
+            statements = spearmint.fetch(login.info)
             Database.merge_statements(statements)
 
     @classmethod

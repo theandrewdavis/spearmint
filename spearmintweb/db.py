@@ -1,6 +1,17 @@
 import sqlite3
+import yaml
 
 from spearmint import Account, Transaction
+
+class Login(object):
+    def __init__(self, info=None):
+        self.info = info
+
+    @classmethod
+    def load(cls, filename):
+        logins = []
+        with open(filename, 'r') as file:
+            return [cls(info=info) for info in yaml.load(file.read())]
 
 class Database(object):
     database_file = 'db.sqlite3'
