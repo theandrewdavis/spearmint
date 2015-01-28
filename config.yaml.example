@@ -1,0 +1,21 @@
+---
+logins:
+    -   # Capital One 360, Andrew
+        name: "Andrew's Capital One 360"
+        login:
+            bank:       "capitalone360"
+            username:   "username"
+            password:   "password"
+            extra:
+                access_code: "ACCESSCODE"
+
+    -   # US Bank, Andrew
+        name: "Andrew's US Bank"
+        login:
+            bank:       "usbank"
+            username:   "username"
+            password:   "password"
+            extra:
+                questions:
+                    "What was the name of the first fish you ever loved?": "bluefin tuna"
+                    "What was the name of the last cabbage you ate before you turned 18?": "Marcia"

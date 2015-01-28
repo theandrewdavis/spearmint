@@ -13,6 +13,14 @@ def server():
     spearmintweb.Server(host='localhost', port=8080).run()
 
 @shovel.task
+def db_load():
+    with open('config.yaml', 'r') as file:
+        config = yaml.load(file.read())
+        for login_dict in config['logins']:
+            login_view = spearmintweb.LoginView.from_dict(login_dict)
+            login_view.upsert()
+
+@shovel.task
 def db_empty():
     spearmintweb.Database.drop_tables()
     spearmintweb.Database.create_tables()
@@ -52,22 +60,22 @@ def db_dump():
 
 @shovel.task
 def fetch(bank=None):
-    logins = spearmintweb.Login.load('banks.yaml')
+    login_views = spearmintweb.LoginView.all()
     if bank is not None:
-        logins = [login for login in logins if login.info['bank'] == bank]
-    if len(logins) == 0:
+        login_views = [login_view for login_view in login_views if login_view.login.bank == bank]
+    if len(login_views) == 0:
         print('No login available for bank {}'.format(bank))
         return
     accounts = []
     transactions = []
-    for login in logins:
-        for statement in spearmint.fetch(login.info):
+    for login_view in login_views:
+        for statement in spearmint.fetch(login_view.login):
             accounts.append(statement.account)
             transactions.extend(statement.transactions)
     print_summary(accounts, transactions)
 
 @shovel.task
 def merge():
-    for login in spearmintweb.Login.load('banks.yaml'):
-        statements = spearmint.fetch(login.info)
+    for login_view in spearmintweb.LoginView.all():
+        statements = spearmint.fetch(login_view.login)
         spearmintweb.Database.merge_statements(statements)

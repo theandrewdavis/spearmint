@@ -1,71 +1,73 @@
 import datetime
 
-from . import OfxFetcher, ScrapeFetcher
+from . import OfxFetcher, ScrapeFetcher, Login
 
-def fetch(info):
-    return Fetcher.fetch(info)
+def fetch(login):
+    return Fetcher.fetch(login)
 
 class Fetcher(object):
-    _banks = {
-        'citi':             {'method': cls._fetch_citi,             'args': ['username', 'password'                 ]},
-        'amex':             {'method': cls._fetch_amex,             'args': ['username', 'password'                 ]},
-        'chase':            {'method': cls._fetch_chase,            'args': ['username', 'password'                 ]},
-        'citi':             {'method': cls._fetch_citi,             'args': ['username', 'password'                 ]},
-        'citibusiness':     {'method': cls._fetch_citibusiness,     'args': ['username', 'password'                 ]},
-        'schwab':           {'method': cls._fetch_schwab,           'args': ['username', 'password'                 ]},
-        'capitalone360':    {'method': cls._fetch_capitalone360,    'args': ['username', 'password', 'access_code'  ]},
-        'ally':             {'method': cls._fetch_ally,             'args': ['username', 'password'                 ]},
-        'barclay':          {'method': cls._fetch_barclay,          'args': ['username', 'password'                 ]},
-        'usbank':           {'method': cls._fetch_usbank,           'args': ['username', 'password', 'questions'    ]}
-    }
+    @classmethod
+    def _bank_info(cls, bank):
+        banks = {
+            'citi':             {'method': cls._fetch_citi,             'extra': []                 },
+            'amex':             {'method': cls._fetch_amex,             'extra': []                 },
+            'chase':            {'method': cls._fetch_chase,            'extra': []                 },
+            'citi':             {'method': cls._fetch_citi,             'extra': []                 },
+            'citibusiness':     {'method': cls._fetch_citibusiness,     'extra': []                 },
+            'schwab':           {'method': cls._fetch_schwab,           'extra': []                 },
+            'capitalone360':    {'method': cls._fetch_capitalone360,    'extra': ['access_code']    },
+            'ally':             {'method': cls._fetch_ally,             'extra': []                 },
+            'barclay':          {'method': cls._fetch_barclay,          'extra': []                 },
+            'usbank':           {'method': cls._fetch_usbank,           'extra': ['questions']      }
+        }
+        if bank not in banks:
+            raise Exception('Bank "{}" not implemented'.format(bank))
+        return (banks[bank]['method'], banks[bank]['extra'])
 
     @classmethod
-    def fetch(cls, info):
-        args = info.copy()
-        bank = args.pop('bank')
-        if bank not in cls._banks:
-            raise Exception('Not implemented')
-        for arg in cls._banks[bank]['args']:
-            if arg not in args:
+    def fetch(cls, login):
+        method, extra = cls._bank_info(login.bank)
+        for arg in extra:
+            if not login.extra or arg not in login.extra.keys():
                 raise Exception('Missing argument "{}"'.format(arg))
-        return cls._banks[bank]['method'](**args)
+        return method(login)
 
     @classmethod
-    def required_info(cls, bank):
-        return cls._banks[bank]['args']
+    def extra(cls, bank):
+        return cls._bank_info(login.bank)[1]
 
     @classmethod
-    def _fetch_citi(cls, username=None, password=None):
+    def _fetch_citi(cls, login):
         return OfxFetcher.fetch(
-            username=username,
-            password=password,
+            username=login.username,
+            password=login.password,
             org='Citigroup',
             fid='24909',
             url='https://www.accountonline.com/cards/svc/CitiOfxManager.do')
 
     @classmethod
-    def _fetch_citibusiness(cls, username=None, password=None):
+    def _fetch_citibusiness(cls, login):
         return OfxFetcher.fetch(
-            username=username,
-            password=password,
+            username=login.username,
+            password=login.password,
             org='Citigroup',
             fid='26389',
             url='https://www.accountonline.com/cards/svc/CitiOfxManager.do')
 
     @classmethod
-    def _fetch_amex(cls, username=None, password=None):
+    def _fetch_amex(cls, login):
         return OfxFetcher.fetch(
-            username=username,
-            password=password,
+            username=login.username,
+            password=login.password,
             org='AMEX',
             fid='3101',
             url='https://online.americanexpress.com/myca/ofxdl/desktop/desktopDownload.do?request_type=nl_ofxdownload')
 
     @classmethod
-    def _fetch_chase(cls, username=None, password=None):
+    def _fetch_chase(cls, login):
         statements = OfxFetcher.fetch(
-            username=username,
-            password=password,
+            username=login.username,
+            password=login.password,
             org='B1',
             fid='10898',
             url='https://ofx.chase.com')
@@ -78,16 +80,16 @@ class Fetcher(object):
         return unique_statements
 
     @classmethod
-    def _fetch_schwab(cls, username=None, password=None):
+    def _fetch_schwab(cls, login):
         return OfxFetcher.fetch(
-            username=username,
-            password=password,
+            username=login.username,
+            password=login.password,
             org='101',
             fid='ISC',
             url='https://ofx.schwab.com/bankcgi_dev/ofx_server')
 
     @classmethod
-    def _merge_capitalone360(ofx_statements, scrape_statements):
+    def _merge_capitalone360(cls, ofx_statements, scrape_statements):
         for ofx_statement in ofx_statements:
             # Match statements by account number
             scrape_numbers = [statement.account.number for statement in scrape_statements]
@@ -127,38 +129,38 @@ class Fetcher(object):
                 # descriptions of the ofx and scrape transactions.
 
     @classmethod
-    def _fetch_capitalone360(cls, username=None, password=None, access_code=None):
+    def _fetch_capitalone360(cls, login):
         ofx_statements = OfxFetcher.fetch(
-            username=username,
-            password=access_code,
+            username=login.username,
+            password=login.extra['access_code'],
             org='ING DIRECT',
             fid='031176110',
             url='https://ofx.capitalone360.com/OFX/ofx.html')
         scrape_statements = ScrapeFetcher.fetch(
-            bank='capitalone360',
-            username=username,
-            password=password)
+            bank=login.bank,
+            username=login.username,
+            password=login.password)
         cls._merge_capitalone360(ofx_statements, scrape_statements)
         return ofx_statements
 
     @classmethod
-    def _fetch_ally(cls, username=None, password=None):
+    def _fetch_ally(cls, login):
         return ScrapeFetcher.fetch(
-            bank='ally',
-            username=username,
-            password=password)
+            bank=login.bank,
+            username=login.username,
+            password=login.password)
 
     @classmethod
-    def _fetch_barclay(cls, username=None, password=None):
+    def _fetch_barclay(cls, login):
         return ScrapeFetcher.fetch(
-            bank='barclay',
-            username=username,
-            password=password)
+            bank=login.bank,
+            username=login.username,
+            password=login.password)
 
     @classmethod
-    def _fetch_usbank(cls, username=None, password=None, questions=None):
+    def _fetch_usbank(cls, login):
         return ScrapeFetcher.fetch(
-            bank='usbank',
-            username=username,
-            password=password,
-            questions=questions)
+            bank=login.bank,
+            username=login.username,
+            password=login.password,
+            questions=login.extra['questions'])

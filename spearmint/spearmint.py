@@ -2,24 +2,14 @@ import datetime
 import dateutil.parser
 import decimal
 
-class SpearmintObject(object):
-    def _set_datetime(self, attr, value):
-        if value is None or type(value) is datetime.datetime:
-            setattr(self, attr, value)
-        elif type(value) in [str, unicode]:
-            setattr(self, attr, dateutil.parser.parse(value))
-        else:
-            raise 'Invalid date'
+class Login(object):
+    def __init__(self, bank=None, username=None, password=None, extra=None):
+        self.bank = bank
+        self.username = username
+        self.password = password
+        self.extra = extra
 
-    def _set_decimal(self, attr, value):
-        if value is None:
-            setattr(self, attr, value)
-        elif type(value) in [str, unicode]:
-            setattr(self, attr, decimal.Decimal(value.replace(',', '')))
-        else:
-            setattr(self, attr, decimal.Decimal(value))
-
-class Account(SpearmintObject):
+class Account(object):
     def __init__(self, org=None, username=None, number=None, balance=None):
         self.org = org
         self.username = username
@@ -32,7 +22,7 @@ class Account(SpearmintObject):
 
     @balance.setter
     def balance(self, value):
-        self._set_decimal('_balance', value)
+        _set_decimal(self, '_balance', value)
 
     def as_dict(self):
         return {
@@ -42,7 +32,7 @@ class Account(SpearmintObject):
             'balance': '{:,.2f}'.format(self.balance)
         }
 
-class Transaction(SpearmintObject):
+class Transaction(object):
     def __init__(self, tid=None, date=None, amount=None, description=None):
         self.tid = tid
         self.date = date
@@ -55,7 +45,7 @@ class Transaction(SpearmintObject):
 
     @date.setter
     def date(self, value):
-        self._set_datetime('_date', value)
+        _set_datetime(self, '_date', value)
 
     @property
     def amount(self):
@@ -63,7 +53,7 @@ class Transaction(SpearmintObject):
 
     @amount.setter
     def amount(self, value):
-        self._set_decimal('_amount', value)
+        _set_decimal(self, '_amount', value)
 
     def as_dict(self):
         return {
@@ -79,3 +69,19 @@ class Statement(object):
             self.transactions = []
         else:
             self.transactions = transactions
+
+def _set_datetime(obj, attr, value):
+    if value is None or type(value) is datetime.datetime:
+        setattr(obj, attr, value)
+    elif type(value) in [str, unicode]:
+        setattr(obj, attr, dateutil.parser.parse(value))
+    else:
+        raise 'Invalid date'
+
+def _set_decimal(obj, attr, value):
+    if value is None:
+        setattr(obj, attr, value)
+    elif type(value) in [str, unicode]:
+        setattr(obj, attr, decimal.Decimal(value.replace(',', '')))
+    else:
+        setattr(obj, attr, decimal.Decimal(value))
