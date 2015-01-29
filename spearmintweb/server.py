@@ -4,7 +4,7 @@ import spearmint
 import yaml
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from . import Database, LoginView
+from . import Account, Transaction, Updater
 
 class Server(object):
     def __init__(self, host, port):
@@ -14,7 +14,7 @@ class Server(object):
         self._route()
 
     def run(self):
-        ScheduledUpdater.run()
+        Updater.run_periodically()
         self.app.run(host=self.host, port=self.port)
 
     def _route(self):
@@ -29,20 +29,4 @@ class Server(object):
         return bottle.static_file(path, root='static')
 
     def _api_summary(self):
-        accounts = [account.as_dict() for account in Database.all_accounts()]
-        transactions = [tx.as_dict() for tx in Database.all_transactions()]
-        return {'accounts': accounts, 'transactions': transactions}
-
-class ScheduledUpdater(object):
-    @classmethod
-    def merge(cls):
-        for login_view in LoginView.all():
-            statements = spearmint.fetch(login_view.login)
-            Database.merge_statements(statements)
-
-    @classmethod
-    def run(cls):
-        logging.basicConfig()
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(cls.merge, 'interval', minutes=10)
-        scheduler.start()
+        return {'accounts': Account.all(), 'transactions': Transaction.all()}

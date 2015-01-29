@@ -24,14 +24,6 @@ class Account(object):
     def balance(self, value):
         _set_decimal(self, '_balance', value)
 
-    def as_dict(self):
-        return {
-            'org': self.org,
-            'username': self.username,
-            'number': self.number,
-            'balance': '{:,.2f}'.format(self.balance)
-        }
-
 class Transaction(object):
     def __init__(self, tid=None, date=None, amount=None, description=None):
         self.tid = tid
@@ -54,13 +46,6 @@ class Transaction(object):
     @amount.setter
     def amount(self, value):
         _set_decimal(self, '_amount', value)
-
-    def as_dict(self):
-        return {
-            'date': self.date.strftime('%x'),
-            'amount': '{:,.2f}'.format(self.amount),
-            'description': self.description
-        }
 
 class Statement(object):
     def __init__(self, account=None, transactions=None):
