@@ -20,13 +20,7 @@
 .striped-table td {
     padding: 10px 6px 6px 6px;
 }
-.accounts .org {
-    width: 120px;
-}
-.accounts .username {
-    width: 120px;
-}
-.accounts .number {
+.accounts .name {
     width: 120px;
 }
 .transactions .date {

@@ -1,6 +1,8 @@
+import logging
 import spearmint
 import yaml
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from . import Account, Transaction
 
 class Updater(object):
