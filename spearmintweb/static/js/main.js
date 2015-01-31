@@ -13,7 +13,21 @@ $(function () {
         $('.accounts tbody')[0].innerHTML = tableHTML;
 
         // Format transactions table
-        tableHTML = _.map(data['transactions'], transactionTemplate).join("");
+        var accountNames = _.object(_.map(accountData, function (account) {
+            return [account['aid'], account['name']];
+        }));
+        var transactionData = _.map(data['transactions'], function (tx) {
+            if (tx['amount'] >= 0) {
+                tx['from_account'] = '';
+                tx['to_account'] = accountNames[tx['aid']];
+            } else {
+                tx['to_account'] = '';
+                tx['from_account'] = accountNames[tx['aid']];
+            }
+            tx['amount'] = Math.abs(tx['amount']);
+            return tx;
+        });
+        tableHTML = _.map(transactionData, transactionTemplate).join("");
         $('.transactions tbody')[0].innerHTML = tableHTML;
     })
-})
+});

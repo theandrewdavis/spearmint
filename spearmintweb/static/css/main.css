@@ -21,7 +21,7 @@
     padding: 10px 6px 6px 6px;
 }
 .accounts .name {
-    width: 120px;
+    width: 340px;
 }
 .transactions .date {
     width: 80px;
@@ -30,4 +30,10 @@
 .transactions .amount {
     width: 80px;
     text-align: right;
+}
+.transactions .from_account {
+    width: 160px;
+}
+.transactions .to_account {
+    width: 160px;
 }
