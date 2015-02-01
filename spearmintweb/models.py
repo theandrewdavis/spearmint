@@ -34,11 +34,19 @@ class Database(object):
         cursor.execute('DROP TABLE IF EXISTS transactions')
         cls.close(connection, commit=True)
 
+    @classmethod
+    def from_decimal(cls, value):
+        return int(value * 100)
+
+    @classmethod
+    def from_date(cls, value):
+        return value.strftime('%Y-%m-%d')
+
 class Account(object):
     @classmethod
     def upsert_bank_data(cls, org, username, number, balance):
         connection, cursor = Database.open()
-        values = (str(balance), org, username, number)
+        values = (Database.from_decimal(balance), org, username, number)
         cursor.execute('UPDATE OR IGNORE accounts SET `balance`=? WHERE `org`=? AND `username`=? AND `number`=?', values)
         cursor.execute('INSERT OR IGNORE INTO accounts (`balance`, `org`, `username`, `number`) VALUES (?,?,?,?)', values)
         Database.close(connection, commit=True)
@@ -66,13 +74,14 @@ class Account(object):
             account = {'aid': row[0], 'org': row[1], 'username': row[2], 'number': row[3], 'balance': row[4], 'name': row[5]}
             accounts.append(account)
         Database.close(connection)
+        accounts = sorted(accounts, key=lambda account: abs(int(account['balance'])), reverse=True)
         return accounts
 
 class Transaction(object):
     @classmethod
     def upsert_bank_data(cls, aid, tid, date, amount, description):
         connection, cursor = Database.open()
-        values = (aid, date.strftime('%x'), str(amount), description, tid)
+        values = (aid, Database.from_date(date), Database.from_decimal(amount), description, tid)
         cursor.execute('UPDATE OR IGNORE transactions SET `aid`=?, `date`=?, `amount`=?, `description`=? WHERE `tid`=?', values)
         cursor.execute('INSERT OR IGNORE INTO transactions (`aid`, `date`, `amount`, `description`, `tid`) VALUES (?,?,?,?,?)', values)
         Database.close(connection, commit=True)
@@ -86,4 +95,5 @@ class Transaction(object):
             transaction = {'aid': row[0], 'tid': row[1], 'date': row[2], 'amount': row[3], 'description': row[4]}
             transactions.append(transaction)
         Database.close(connection)
+        transactions = sorted(transactions, key=lambda tx: tx['date'], reverse=True)
         return transactions

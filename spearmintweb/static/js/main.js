@@ -7,6 +7,7 @@ $(function () {
             if (!account['name']) {
                 account['name'] = account['org'] + ':' + account['username'] + ':' + account['number'];
             }
+            account['balance'] = (parseInt(account['balance']) / 100).toFixed(2);
             return account;
         });
         var tableHTML = _.map(accountData, accountTemplate).join("");
@@ -24,7 +25,7 @@ $(function () {
                 tx['to_account'] = '';
                 tx['from_account'] = accountNames[tx['aid']];
             }
-            tx['amount'] = Math.abs(tx['amount']);
+            tx['amount'] = (Math.abs(parseInt(tx['amount'])) / 100).toFixed(2);
             return tx;
         });
         tableHTML = _.map(transactionData, transactionTemplate).join("");
