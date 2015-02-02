@@ -18,10 +18,6 @@ def empty():
     spearmintweb.Database.create_tables()
 
 @shovel.task
-def merge():
-    spearmintweb.Updater.merge_bank_data()
-
-@shovel.task
 def load_config():
     with open('config.yaml', 'r') as file:
         config = yaml.load(file.read())
@@ -41,8 +37,8 @@ def dump():
         print('{:10} {:>9}'.format(account['name'], account['balance']))
     print('\n{} transactions, {} accounts\n'.format(len(transactions), len(accounts)))
 
-@shovel.task
-def fetch(bank=None):
+
+def load_logins(bank):
     # Load logins from file
     with open('config.yaml', 'r') as file:
         config = yaml.load(file.read())
@@ -51,11 +47,16 @@ def fetch(bank=None):
     # Select specific bank if passed as arg
     if bank is not None:
         logins = [login for login in logins if login.bank == bank]
-    if len(logins) == 0:
-        print('No login available for bank {}'.format(bank))
-        return
 
+    if len(logins) == 0:
+        raise Exception('No login available for bank {}'.format(bank))
+
+    return logins
+
+@shovel.task
+def fetch(bank=None):
     # Fetch accounts and transactions
+    logins = load_logins(bank)
     accounts = []
     transactions = []
     for login in logins:
@@ -70,3 +71,10 @@ def fetch(bank=None):
     for account in accounts:
         print('{:10} {:20} {:20} {:>9}'.format(account.org, account.username, account.number, account.balance))
     print('\n{} transactions, {} accounts\n'.format(len(transactions), len(accounts)))
+
+@shovel.task
+def merge(bank=None):
+    logins = load_logins(bank)
+    for login in logins:
+        for statement in spearmint.fetch(login):
+            spearmintweb.Updater.merge_statement(statement)

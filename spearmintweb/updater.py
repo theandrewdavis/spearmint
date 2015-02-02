@@ -14,11 +14,15 @@ class Updater(object):
             for login in logins:
                 statements = spearmint.fetch(login)
                 for statement in statements:
-                    account = statement.account
-                    Account.upsert_bank_data(account.org, account.username, account.number, account.balance)
-                    account_id = Account.find_aid(account.org, account.username, account.number)
-                    for tx in statement.transactions:
-                        Transaction.upsert_bank_data(account_id, tx.tid, tx.date, tx.amount, tx.description)
+                    cls.merge_statement(statement)
+
+    @classmethod
+    def merge_statement(cls, statement):
+            account = statement.account
+            Account.upsert_bank_data(account.org, account.username, account.number, account.balance)
+            account_id = Account.find_aid(account.org, account.username, account.number)
+            for tx in statement.transactions:
+                Transaction.upsert_bank_data(account_id, tx.tid, tx.date, tx.amount, tx.description)
 
     @classmethod
     def run_periodically(cls):
