@@ -81,9 +81,9 @@ class Transaction(object):
     @classmethod
     def upsert_bank_data(cls, aid, tid, date, amount, description):
         connection, cursor = Database.open()
-        values = (aid, Database.from_date(date), Database.from_decimal(amount), description, tid)
-        cursor.execute('UPDATE OR IGNORE transactions SET `aid`=?, `date`=?, `amount`=?, `description`=? WHERE `tid`=?', values)
-        cursor.execute('INSERT OR IGNORE INTO transactions (`aid`, `date`, `amount`, `description`, `tid`) VALUES (?,?,?,?,?)', values)
+        values = (Database.from_date(date), Database.from_decimal(amount), description, aid, tid)
+        cursor.execute('UPDATE OR IGNORE transactions SET `date`=?, `amount`=?, `description`=? WHERE `aid`=? AND `tid`=?', values)
+        cursor.execute('INSERT OR IGNORE INTO transactions (`date`, `amount`, `description`, `aid`, `tid`) VALUES (?,?,?,?,?)', values)
         Database.close(connection, commit=True)
 
     @classmethod
