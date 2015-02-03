@@ -1,8 +1,5 @@
 Spearmint is a self-hosted webapp for tracking your personal finances.
 
-## TODO
-* Figure out why sys.path needs to be ammended in shovel.py
-
 ## Deployment instructions
 ```
 scp ~/.ssh/config ~/.ssh/id_rsa_github* aws:/home/ubuntu/.ssh
