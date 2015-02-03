@@ -10,6 +10,9 @@ $(function () {
         var data = _.map(this.json, this.rowData, this);
         var html = _.map(data, this.template).join("");
         $('.accounts tbody')[0].innerHTML = html;
+        $('.accounts .show input').change(function () {
+            $(document).trigger('accountChange');
+        });
     };
 
     AccountTable.prototype.rowData = function (json) {
@@ -21,12 +24,12 @@ $(function () {
     };
 
     AccountTable.prototype.prepareNames = function(json) {
-        return _.object(_.map(json, function (account_json) {
-            var name = account_json['name'];
+        return _.object(_.map(json, function (accountJson) {
+            var name = accountJson['name'];
             if (!name) {
-                name = account_json['org'] + ':' + account_json['username'] + ':' + account_json['number'];
+                name = accountJson['org'] + ':' + accountJson['username'] + ':' + accountJson['number'];
             }
-            return [account_json['aid'], name];
+            return [accountJson['aid'], name];
         }));
     };
 
@@ -34,14 +37,26 @@ $(function () {
         return this.names[aid];
     };
 
+    AccountTable.prototype.accounts = function () {
+        return _.map($('.accounts .show input:checked'), function (element) {
+            return parseInt($(element).val());
+        });
+    };
+
     var TransactionTable = function (json, accountTable) {
         this.json = json;
         this.accountTable = accountTable;
         this.template = _.template($('#transaction-template')[0].innerHTML);
+        $(document).on('accountChange', $.proxy(this.layout, this));
     };
 
     TransactionTable.prototype.layout = function () {
-        var data = _.map(this.json, this.rowData, this);
+        var accounts = this.accountTable.accounts();
+        var filtered = _.filter(this.json, function (json) {
+            return _.indexOf(accounts, json['aid']) != -1;
+        });
+        console.log('Before: ' + this.json.length + ' After: ' + filtered.length);
+        var data = _.map(filtered, this.rowData, this);
         var html = _.map(data, this.template).join("");
         $('.transactions tbody')[0].innerHTML = html;
     };
