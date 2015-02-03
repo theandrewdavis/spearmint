@@ -11,8 +11,8 @@ cd spearmint
 virtualenv .
 source bin/activate
 pip install -r requirements.txt
-cp banks.yaml.example banks.yaml
-vi banks.yaml
+cp config.yaml.example config.yaml
+vi config.yaml
 shovel clear
 sudo ./bin/python server.py
 ```
