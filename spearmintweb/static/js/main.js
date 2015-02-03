@@ -1,34 +1,73 @@
 $(function () {
-    var accountTemplate = _.template($('#account-template')[0].innerHTML);
-    var transactionTemplate = _.template($('#transaction-template')[0].innerHTML);
-    $.getJSON('/api/summary', function (data) {
-        // Format account balances table
-        var accountData = _.map(data['accounts'], function (account) {
-            if (!account['name']) {
-                account['name'] = account['org'] + ':' + account['username'] + ':' + account['number'];
-            }
-            account['balance'] = (parseInt(account['balance']) / 100).toFixed(2);
-            return account;
-        });
-        var tableHTML = _.map(accountData, accountTemplate).join("");
-        $('.accounts tbody')[0].innerHTML = tableHTML;
 
-        // Format transactions table
-        var accountNames = _.object(_.map(accountData, function (account) {
-            return [account['aid'], account['name']];
-        }));
-        var transactionData = _.map(data['transactions'], function (tx) {
-            if (tx['amount'] >= 0) {
-                tx['from_account'] = '';
-                tx['to_account'] = accountNames[tx['aid']];
-            } else {
-                tx['to_account'] = '';
-                tx['from_account'] = accountNames[tx['aid']];
+    var AccountTable = function (json) {
+        this.json = json;
+        this.template = _.template($('#account-template')[0].innerHTML);
+        this.names = this.prepareNames(json);
+    };
+
+    AccountTable.prototype.layout = function (json) {
+        var data = _.map(this.json, this.rowData, this);
+        var html = _.map(data, this.template).join("");
+        $('.accounts tbody')[0].innerHTML = html;
+    };
+
+    AccountTable.prototype.rowData = function (json) {
+        var formatted = {};
+        formatted['aid'] = json['aid'];
+        formatted['name'] = this.accountName(json['aid']);
+        formatted['balance'] = (Math.abs(parseInt(json['balance'])) / 100).toFixed(2);
+        return formatted;
+    };
+
+    AccountTable.prototype.prepareNames = function(json) {
+        return _.object(_.map(json, function (account_json) {
+            var name = account_json['name'];
+            if (!name) {
+                name = account_json['org'] + ':' + account_json['username'] + ':' + account_json['number'];
             }
-            tx['amount'] = (Math.abs(parseInt(tx['amount'])) / 100).toFixed(2);
-            return tx;
-        });
-        tableHTML = _.map(transactionData, transactionTemplate).join("");
-        $('.transactions tbody')[0].innerHTML = tableHTML;
-    })
+            return [account_json['aid'], name];
+        }));
+    };
+
+    AccountTable.prototype.accountName = function (aid) {
+        return this.names[aid];
+    };
+
+    var TransactionTable = function (json, accountTable) {
+        this.json = json;
+        this.accountTable = accountTable;
+        this.template = _.template($('#transaction-template')[0].innerHTML);
+    };
+
+    TransactionTable.prototype.layout = function () {
+        var data = _.map(this.json, this.rowData, this);
+        var html = _.map(data, this.template).join("");
+        $('.transactions tbody')[0].innerHTML = html;
+    };
+
+    TransactionTable.prototype.rowData = function (json) {
+        var formatted = {};
+        var amount = parseInt(json['amount']);
+        var accountName = this.accountTable.accountName(json['aid']);
+        formatted['date'] = this.formatDate(json['date']);
+        formatted['amount'] = (Math.abs(amount) / 100).toFixed(2);
+        formatted['from_account'] = (amount >= 0) ? accountName : '';
+        formatted['to_account'] = (amount >= 0) ? '' : accountName;
+        formatted['description'] = json['description'];
+        return formatted;
+    };
+
+    TransactionTable.prototype.formatDate = function (iso8601) {
+        var parts = iso8601.split('-');
+        var date = new Date(parts[0], parseInt(parts[1]) - 1, parts[2]);
+        return date.toLocaleDateString('en-US');
+    };
+
+    $.getJSON('/api/summary', function (json) {
+        var accountTable = new AccountTable(json['accounts']);
+        var txTable = new TransactionTable(json['transactions'], accountTable);
+        accountTable.layout();
+        txTable.layout();
+    });
 });

@@ -20,6 +20,9 @@
 .striped-table td {
     padding: 10px 6px 6px 6px;
 }
+.accounts .show {
+    width: 30px;
+}
 .accounts .name {
     width: 340px;
 }
