@@ -52,6 +52,14 @@ class Account(object):
         Database.close(connection, commit=True)
 
     @classmethod
+    def upsert_config_data(cls, org, username, number, name):
+        connection, cursor = Database.open()
+        values = (name, org, username, number)
+        cursor.execute('UPDATE OR IGNORE accounts SET `name`=? WHERE `org`=? AND `username`=? AND `number`=?', values)
+        cursor.execute('INSERT OR IGNORE INTO accounts (`name`, `org`, `username`, `number`) VALUES (?,?,?,?)', values)
+        Database.close(connection, commit=True)
+
+    @classmethod
     def update(cls, aid, name):
         connection, cursor = Database.open()
         cursor.execute('UPDATE accounts SET `name`=? WHERE `aid`=?', (name, aid))
@@ -74,7 +82,7 @@ class Account(object):
             account = {'aid': row[0], 'org': row[1], 'username': row[2], 'number': row[3], 'balance': row[4], 'name': row[5]}
             accounts.append(account)
         Database.close(connection)
-        accounts = sorted(accounts, key=lambda account: abs(int(account['balance'])), reverse=True)
+        accounts = sorted(accounts, key=lambda account: abs(int(account['balance'] or 0)), reverse=True)
         return accounts
 
 class Transaction(object):

@@ -21,9 +21,8 @@ def empty():
 def load_config():
     with open('config.yaml', 'r') as file:
         config = yaml.load(file.read())
-        for account_config in config['accounts']:
-            account_id = spearmintweb.Account.find_aid(account_config['org'], account_config['username'], account_config['number'])
-            spearmintweb.Account.update(account_id, account_config['name'])
+        for acct in config['accounts']:
+            spearmintweb.Account.upsert_config_data(acct['org'], acct['username'], acct['number'], acct['name'])
 
 @shovel.task
 def dump():
