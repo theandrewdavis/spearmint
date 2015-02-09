@@ -2,8 +2,8 @@ import datetime
 
 from . import OfxFetcher, ScrapeFetcher, Login
 
-def fetch(login):
-    return Fetcher.fetch(login)
+def fetch(login, interactive=False):
+    return Fetcher.fetch(login, interactive)
 
 class Fetcher(object):
     @classmethod
@@ -25,19 +25,19 @@ class Fetcher(object):
         return (banks[bank]['method'], banks[bank]['extra'])
 
     @classmethod
-    def fetch(cls, login):
+    def fetch(cls, login, interactive=False):
         method, extra = cls._bank_info(login.bank)
         for arg in extra:
             if not login.extra or arg not in login.extra.keys():
                 raise Exception('Missing argument "{}"'.format(arg))
-        return method(login)
+        return method(login, interactive)
 
     @classmethod
     def extra(cls, bank):
         return cls._bank_info(login.bank)[1]
 
     @classmethod
-    def _fetch_citi(cls, login):
+    def _fetch_citi(cls, login, interactive):
         return OfxFetcher.fetch(
             username=login.username,
             password=login.password,
@@ -46,7 +46,7 @@ class Fetcher(object):
             url='https://www.accountonline.com/cards/svc/CitiOfxManager.do')
 
     @classmethod
-    def _fetch_citibusiness(cls, login):
+    def _fetch_citibusiness(cls, login, interactive):
         return OfxFetcher.fetch(
             username=login.username,
             password=login.password,
@@ -55,7 +55,7 @@ class Fetcher(object):
             url='https://www.accountonline.com/cards/svc/CitiOfxManager.do')
 
     @classmethod
-    def _fetch_amex(cls, login):
+    def _fetch_amex(cls, login, interactive):
         return OfxFetcher.fetch(
             username=login.username,
             password=login.password,
@@ -64,7 +64,7 @@ class Fetcher(object):
             url='https://online.americanexpress.com/myca/ofxdl/desktop/desktopDownload.do?request_type=nl_ofxdownload')
 
     @classmethod
-    def _fetch_chase(cls, login):
+    def _fetch_chase(cls, login, interactive):
         statements = OfxFetcher.fetch(
             username=login.username,
             password=login.password,
@@ -80,7 +80,7 @@ class Fetcher(object):
         return unique_statements
 
     @classmethod
-    def _fetch_schwab(cls, login):
+    def _fetch_schwab(cls, login, interactive):
         return OfxFetcher.fetch(
             username=login.username,
             password=login.password,
@@ -129,7 +129,7 @@ class Fetcher(object):
                 # descriptions of the ofx and scrape transactions.
 
     @classmethod
-    def _fetch_capitalone360(cls, login):
+    def _fetch_capitalone360(cls, login, interactive):
         ofx_statements = OfxFetcher.fetch(
             username=login.username,
             password=login.extra['access_code'],
@@ -139,28 +139,32 @@ class Fetcher(object):
         scrape_statements = ScrapeFetcher.fetch(
             bank=login.bank,
             username=login.username,
-            password=login.password)
+            password=login.password,
+            interactive=interactive)
         cls._merge_capitalone360(ofx_statements, scrape_statements)
         return ofx_statements
 
     @classmethod
-    def _fetch_ally(cls, login):
-        return ScrapeFetcher.fetch(
-            bank=login.bank,
-            username=login.username,
-            password=login.password)
-
-    @classmethod
-    def _fetch_barclay(cls, login):
-        return ScrapeFetcher.fetch(
-            bank=login.bank,
-            username=login.username,
-            password=login.password)
-
-    @classmethod
-    def _fetch_usbank(cls, login):
+    def _fetch_ally(cls, login, interactive):
         return ScrapeFetcher.fetch(
             bank=login.bank,
             username=login.username,
             password=login.password,
-            questions=login.extra['questions'])
+            interactive=interactive)
+
+    @classmethod
+    def _fetch_barclay(cls, login, interactive):
+        return ScrapeFetcher.fetch(
+            bank=login.bank,
+            username=login.username,
+            password=login.password,
+            interactive=interactive)
+
+    @classmethod
+    def _fetch_usbank(cls, login, interactive):
+        return ScrapeFetcher.fetch(
+            bank=login.bank,
+            username=login.username,
+            password=login.password,
+            questions=login.extra['questions'],
+            interactive=interactive)

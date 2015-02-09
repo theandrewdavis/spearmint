@@ -7,9 +7,28 @@ import requests
 
 from . import Account, Statement, Transaction, OfxParser
 
+from . import rlogging
+rlogging.RequestsHTTPLogger("debug.html").hook()
+
+class CheckingSession(requests.Session):
+    def get(self, *args, **kwargs):
+        response = super(CheckingSession, self).get(*args, **kwargs)
+        response.raise_for_status()
+        return response
+
+    def post(self, *args, **kwargs):
+        response = super(CheckingSession, self).post(*args, **kwargs)
+        response.raise_for_status()
+        return response
+
+    def delete(self, *args, **kwargs):
+        response = super(CheckingSession, self).delete(*args, **kwargs)
+        response.raise_for_status()
+        return response
+
 class ScrapeFetcher(object):
     @classmethod
-    def fetch(cls, bank=None, username=None, password=None, questions=None):
+    def fetch(cls, bank=None, username=None, password=None, questions=None, interactive=False):
         methods = {
             'capitalone360': cls._fetch_capitalone360,
             'ally': cls._fetch_ally,
@@ -18,11 +37,11 @@ class ScrapeFetcher(object):
         }
         if bank not in methods:
             raise Exception('Not implemented')
-        return methods[bank](username, password, questions)
+        return methods[bank](username, password, questions, interactive)
 
     @classmethod
-    def _fetch_capitalone360(cls, username, password, questions):
-        session = requests.Session()
+    def _fetch_capitalone360(cls, username, password, questions, interactive):
+        session = CheckingSession()
 
         # Submit username
         url = 'https://secure.capitalone360.com/myaccount/banking/login.vm'
@@ -127,8 +146,8 @@ class ScrapeFetcher(object):
         return statements
 
     @classmethod
-    def _fetch_ally(cls, username, password, questions):
-        session = requests.Session()
+    def _fetch_ally(cls, username, password, questions, interactive):
+        session = CheckingSession()
 
         # Get the XSRF token
         response = session.post('https://securebanking.ally.com/IDPProxy/userstatusenquiry/olbWeb')
@@ -149,6 +168,46 @@ class ScrapeFetcher(object):
             'userNamePvtEncrypt': username
         }
         response = session.post(url, headers=headers, data=data)
+
+        # Check for second factor challenge
+        response_fragment = re.search('<?xml [^>]*>(.*)', response.text).groups()[0]
+        html = lxml.html.fromstring(response_fragment)
+        email_elements = html.xpath('//mfadeliverymethod/deliverymethodchannel[text()="EMAIL"]')
+        if len(email_elements) > 0:
+            # Abort if not running interactively
+            if not interactive:
+                raise Exception('Second factor requested in noninteractive mode')
+
+            # Choose email as second factor
+            method_id = email_elements[0].getparent().xpath('deliverymethodid')[0].text
+            javascript_data = ('TF1;015;;;;;;;;;;;;;;;;;;;;;;Mozilla;Netscape;5.0%20%28Macintosh'
+                '%3B%20Intel%20Mac%20OS%20X%2010_9_5%29%20AppleWebKit/537.36%20%28KHTML%2C%20li'
+                'ke%20Gecko%29%20Chrome/40.0.2214.111%20Safari/537.36;20030107;undefined;true;;'
+                'true;MacIntel;undefined;Mozilla/5.0%20%28Macintosh%3B%20Intel%20Mac%20OS%20X%2'
+                '010_9_5%29%20AppleWebKit/537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome/40.0.'
+                '2214.111%20Safari/537.36;en-us;windows-1252;securebanking.ally.com;undefined;u'
+                'ndefined;undefined;undefined;true;false;1423480780267;-5;6/7/2005%2C%209%3A33%'
+                '3A44%20PM;1680;1050;;14.0;;;;;2;300;240;2/9/2015%2C%206%3A19%3A40%20AM;24;1680'
+                ';1024;0;22;;;;;;Shockwave%20Flash%7CShockwave%20Flash%2016.0%20r0;;;;;;;;;;;;;'
+                '22;')
+            url = 'https://securebanking.ally.com/IDPProxy/executor/otp'
+            data = {
+                'javaScriptData': javascript_data,
+                'deliveryMethodId': method_id
+            }
+            response = session.post(url, data=data)
+
+            # Send second factor code
+            second_factor_code = ''
+            print('second_factor_code = "000000"')
+            import pdb; pdb.set_trace()
+            url = 'https://securebanking.ally.com/IDPProxy/executor/session'
+            data = {
+                '_method': 'PATCH',
+                'javaScriptData': javascript_data,
+                'otpCodePvtBlock': second_factor_code
+            }
+            session.post(url, headers=headers, data=data)
 
         # Complete log in
         response = session.get('https://securebanking.ally.com/IDPProxy/executor/session/consents')
@@ -192,8 +251,8 @@ class ScrapeFetcher(object):
         return statements
 
     @classmethod
-    def _fetch_barclay(cls, username, password, questions):
-        session = requests.Session()
+    def _fetch_barclay(cls, username, password, questions, interactive):
+        session = CheckingSession()
 
         # Get XSRF token
         response = session.get('https://www.barclaycardus.com/servicing/')
@@ -263,8 +322,8 @@ class ScrapeFetcher(object):
         return statements
 
     @classmethod
-    def _fetch_usbank(cls, username, password, questions):
-        session = requests.Session()
+    def _fetch_usbank(cls, username, password, questions, interactive):
+        session = CheckingSession()
 
         # Submit username
         url = 'https://onlinebanking.usbank.com/Auth/Login/Login'

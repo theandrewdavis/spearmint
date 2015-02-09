@@ -12,8 +12,7 @@ class Updater(object):
             config = yaml.load(file.read())
             logins = [spearmint.Login(**info) for info in config['logins']]
             for login in logins:
-                statements = spearmint.fetch(login)
-                for statement in statements:
+                for statement in spearmint.fetch(login):
                     cls.merge_statement(statement)
 
     @classmethod

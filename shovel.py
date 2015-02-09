@@ -75,5 +75,10 @@ def fetch(bank=None):
 def merge(bank=None):
     logins = load_logins(bank)
     for login in logins:
-        for statement in spearmint.fetch(login):
-            spearmintweb.Updater.merge_statement(statement)
+        try:
+            for statement in spearmint.fetch(login, interactive=True):
+                spearmintweb.Updater.merge_statement(statement)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            print('Failed to update {}:{}'.format(login.bank, login.username))
