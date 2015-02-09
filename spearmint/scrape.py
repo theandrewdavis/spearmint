@@ -238,6 +238,11 @@ class ScrapeFetcher(object):
             response_fragment = re.search('<?xml [^>]*>(.*)', response.text).groups()[0]
             html = lxml.html.fromstring(response_fragment)
             for tx_element in html.xpath('//transaction'):
+                # Transactions with a 'transactionEffectiveDate' element but no
+                # 'transactionPostingDate' element are pending, skip them
+                if len(tx_element.xpath('transactionpostingdate')) == 0:
+                    continue
+
                 tx = Transaction()
                 tx.tid = tx_element.xpath('transactionid')[0].text
                 tx.date = tx_element.xpath('transactionpostingdate')[0].text
