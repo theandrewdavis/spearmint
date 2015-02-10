@@ -24,19 +24,6 @@ def load_config():
         for acct in config['accounts']:
             spearmintweb.Account.upsert_config_data(acct['org'], acct['username'], acct['number'], acct['name'])
 
-@shovel.task
-def dump():
-    accounts = spearmintweb.Account.all()
-    transactions = spearmintweb.Transaction.all()
-    for tx in transactions:
-        print('{:8} {:>8} {:>9} {}'.format(tx['tid'], tx['date'], tx['amount'], tx['description']))
-    print('')
-    for account in accounts:
-        # print('{:10} {:20} {:20} {:>9}'.format(account['org'], account['username'], account['number'], account['balance']))
-        print('{:10} {:>9}'.format(account['name'], account['balance']))
-    print('\n{} transactions, {} accounts\n'.format(len(transactions), len(accounts)))
-
-
 def load_logins(bank):
     # Load logins from file
     with open('config.yaml', 'r') as file:
@@ -52,9 +39,21 @@ def load_logins(bank):
 
     return logins
 
+def print_data(accounts, transactions):
+    for tx in transactions:
+        if type(tx) == spearmint.Transaction:
+            tx = {'tid': tx.tid, 'date': spearmintweb.Database.from_date(tx.date), 'amount': tx.amount, 'description': tx.description}
+        print('{:18.18} {} {:>9} {:.70}'.format(tx['tid'], tx['date'], tx['amount'], tx['description']))
+    print('')
+    for account in accounts:
+        if type(account) == spearmint.Account:
+            account = {'org': account.org, 'username': account.username, 'number': account.number, 'balance': account.balance}
+        name = account.get('name', None) or '{}:{}:{}'.format(account['org'], account['username'], account['number'])
+        print('{:>9} {:100.100}'.format(account['balance'], name))
+    print('\n{} transactions, {} accounts\n'.format(len(transactions), len(accounts)))
+
 @shovel.task
 def fetch(bank=None):
-    # Fetch accounts and transactions
     logins = load_logins(bank)
     accounts = []
     transactions = []
@@ -62,14 +61,7 @@ def fetch(bank=None):
         for statement in spearmint.fetch(login):
             accounts.append(statement.account)
             transactions.extend(statement.transactions)
-
-    # Print accounts and transactions
-    for tx in transactions:
-        print('{:8} {:>8} {:>9} {}'.format(tx.tid, tx.date.strftime('%x'), tx.amount, tx.description))
-    print('')
-    for account in accounts:
-        print('{:10} {:20} {:20} {:>9}'.format(account.org, account.username, account.number, account.balance))
-    print('\n{} transactions, {} accounts\n'.format(len(transactions), len(accounts)))
+    print_data(accounts, transactions)
 
 @shovel.task
 def merge(bank=None):
@@ -82,3 +74,9 @@ def merge(bank=None):
             raise
         except:
             print('Failed to update {}:{}'.format(login.bank, login.username))
+
+@shovel.task
+def dump():
+    accounts = spearmintweb.Account.all()
+    transactions = spearmintweb.Transaction.all()
+    print_data(accounts, transactions)
