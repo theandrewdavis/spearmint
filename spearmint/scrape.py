@@ -7,9 +7,6 @@ import requests
 
 from . import Account, Statement, Transaction, OfxParser
 
-from . import rlogging
-rlogging.RequestsHTTPLogger("debug.html").hook()
-
 class CheckingSession(requests.Session):
     def get(self, *args, **kwargs):
         response = super(CheckingSession, self).get(*args, **kwargs)
@@ -208,6 +205,11 @@ class ScrapeFetcher(object):
                 'otpCodePvtBlock': second_factor_code
             }
             session.post(url, headers=headers, data=data)
+
+            # Register this device
+            url = 'https://securebanking.ally.com/IDPProxy/executor/device'
+            data = {'javaScriptData': javascript_data}
+            response = session.post(url, data=data)
 
         # Complete log in
         response = session.get('https://securebanking.ally.com/IDPProxy/executor/session/consents')
