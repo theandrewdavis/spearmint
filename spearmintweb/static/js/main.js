@@ -55,7 +55,6 @@ $(function () {
         var filtered = _.filter(this.json, function (json) {
             return _.indexOf(accounts, json['aid']) != -1;
         });
-        console.log('Before: ' + this.json.length + ' After: ' + filtered.length);
         var data = _.map(filtered, this.rowData, this);
         var html = _.map(data, this.template).join("");
         $('.transactions tbody')[0].innerHTML = html;
@@ -67,8 +66,8 @@ $(function () {
         var accountName = this.accountTable.accountName(json['aid']);
         formatted['date'] = this.formatDate(json['date']);
         formatted['amount'] = (Math.abs(amount) / 100).toFixed(2);
-        formatted['from_account'] = (amount >= 0) ? accountName : '';
-        formatted['to_account'] = (amount >= 0) ? '' : accountName;
+        formatted['from_account'] = (amount < 0) ? accountName : '';
+        formatted['to_account'] = (amount < 0) ? '' : accountName;
         formatted['description'] = json['description'];
         return formatted;
     };
