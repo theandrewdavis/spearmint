@@ -58,7 +58,7 @@ def fetch(bank=None):
     accounts = []
     transactions = []
     for login in logins:
-        for statement in spearmint.fetch(login):
+        for statement in spearmint.fetch(login, interactive=True):
             accounts.append(statement.account)
             transactions.extend(statement.transactions)
     print_data(accounts, transactions)
