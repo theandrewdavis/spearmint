@@ -18,7 +18,7 @@ def empty():
     spearmintweb.Database.create_tables()
 
 @shovel.task
-def load_config():
+def config():
     with open('config.yaml', 'r') as file:
         config = yaml.load(file.read())
         for acct in config['accounts']:
