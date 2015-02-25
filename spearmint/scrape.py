@@ -246,7 +246,7 @@ class ScrapeFetcher(object):
                     continue
 
                 tx = Transaction()
-                tx.tid = tx_element.xpath('transactionid')[0].text
+                tx.tid = tx_element.xpath('transactionsequencenumber')[0].text
                 tx.date = tx_element.xpath('transactionpostingdate')[0].text
                 tx.amount = tx_element.xpath('transactionamountpvtencrypt')[0].text
                 tx.description = tx_element.xpath('transactiondescription')[0].text
